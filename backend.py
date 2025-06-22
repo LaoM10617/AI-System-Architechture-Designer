@@ -1,9 +1,10 @@
 import os
 from typing import List
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
+import uvicorn
 
 class RequestBody(BaseModel):
     prompt: str
@@ -43,4 +44,24 @@ async def generate(req: RequestBody):
     return {"result": response.choices[0].message.content}
 
 # 启动： uvicorn backend:app --reload --host 0.0.0.0 --port 8000
+# 生成diagram部分
+class DiagramRequest(BaseModel):
+    architecture_text:str
+@app.post('/generate_diagram')
+async def generate_diagram(req:DiagramRequest):
+    prompt = f"""
+    你是一个软件架构专家，请将以下系统架构描述转化为 mermaid.js 的流程图（graph TD 格式），只返回代码块，不需要任何解释。
 
+    架构描述如下：
+    {req.architecture_text}
+    """
+    try:
+        response = await client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role":"user","content":prompt}],
+            temperature=0.5
+            )
+        diagram_code = response.choices[0].message["content"]
+        return{"diagram":diagram_code}
+    except Exception as e:
+        return{"error":str(e)}
