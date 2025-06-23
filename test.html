@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI System Architecture Designer | Online Tetris</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -196,145 +197,155 @@
       margin-top: 10px;
     }
 
+    .generate-diagram-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      margin-top: 10px;
+    }
+
     .note {
       position: absolute;
       background: #fff78c;
-      padding: 20px;
+      border: 2px solid #333;
       border-radius: 8px;
-      box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
-      width: 250px;
-      min-height: 150px;
+      padding: 15px;
+      min-width: 200px;
+      max-width: 300px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
       cursor: move;
-      transition: box-shadow 0.3s;
+      transition: all 0.3s;
       z-index: 10;
-      max-height: 300px;
-      overflow: hidden;
     }
 
     .note:hover {
-      box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.3);
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
 
     .note-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
+      margin-bottom: 10px;
+      position: relative;
     }
 
     .note-title {
-      font-weight: 700;
+      font-weight: bold;
       font-size: 1.1rem;
-      color: #1a2a6c;
-      cursor: pointer;
+      color: #333;
+      cursor: text;
       padding: 2px 5px;
-      border-radius: 4px;
+      border-radius: 3px;
       transition: background 0.2s;
     }
 
     .note-title:hover {
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .note-title:focus {
-      outline: none;
       background: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 0 0 2px rgba(93, 155, 255, 0.5);
+      outline: none;
     }
 
     .note-actions {
       display: flex;
-      gap: 8px;
+      gap: 5px;
     }
 
     .note-action {
-      background: rgba(0, 0, 0, 0.05);
-      width: 26px;
-      height: 26px;
+      width: 20px;
+      height: 20px;
+      background: #ff6b6b;
+      color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      font-size: 12px;
       transition: all 0.2s;
     }
 
     .note-action:hover {
-      background: rgba(0, 0, 0, 0.1);
+      background: #ff5252;
+      transform: scale(1.1);
     }
 
     .note-content {
-      line-height: 1.5;
-      font-size: 0.95rem;
-      max-height: 200px;
-      overflow-y: auto;
-      padding-right: 5px;
+      color: #555;
+      line-height: 1.4;
+      min-height: 60px;
+      padding: 5px;
+      border-radius: 3px;
+      transition: background 0.2s;
     }
 
-    .note-content::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .note-content::-webkit-scrollbar-track {
+    .note-content:hover {
       background: rgba(0, 0, 0, 0.05);
-      border-radius: 3px;
     }
 
-    .note-content::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 3px;
+    .note-content:focus {
+      background: rgba(255, 255, 255, 0.8);
+      outline: none;
     }
 
-    .result-note {
-      background: #d0f0c0;
-      width: 400px;
-      min-height: 300px;
-      max-height: 400px;
-      z-index: 20;
+    .title-edit-tooltip {
+      position: absolute;
+      top: -25px;
+      left: 0;
+      background: #333;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      white-space: nowrap;
     }
 
-    .result-note .note-content {
-      font-family: 'Courier New', monospace;
-      font-size: 0.9rem;
-      white-space: pre-wrap;
+    .note-header:hover .title-edit-tooltip {
+      opacity: 1;
     }
 
     .trash-bin {
       position: fixed;
-      right: 30px;
       bottom: 30px;
-      background: rgba(255, 255, 255, 0.9);
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #ff6b6b, #ff5252);
       border-radius: 50%;
-      width: 70px;
-      height: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      color: white;
+      font-size: 24px;
       cursor: pointer;
-      z-index: 100;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
       transition: all 0.3s;
+      z-index: 1000;
     }
 
     .trash-bin:hover {
       transform: scale(1.1);
-      background: rgba(255, 100, 100, 0.9);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
     }
 
     .trash-count {
       position: absolute;
       top: -5px;
       right: -5px;
-      background: #ff6b6b;
+      background: #333;
       color: white;
-      width: 25px;
-      height: 25px;
       border-radius: 50%;
+      width: 20px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 12px;
       font-weight: bold;
     }
 
@@ -344,20 +355,19 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.9);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       border-radius: 15px;
-      backdrop-filter: blur(3px);
     }
 
     .spinner {
-      width: 60px;
-      height: 60px;
-      border: 5px solid rgba(26, 42, 108, 0.2);
-      border-top: 5px solid #1a2a6c;
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -367,210 +377,211 @@
       100% { transform: rotate(360deg); }
     }
 
-    .grid-lines {
+    .result-note {
+      background: #d0f0c0;
+      border: 2px solid #28a745;
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image:
-        linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-      background-size: 20px 20px;
-      pointer-events: none;
+      top: 50px;
+      left: 50px;
+      display: none;
+    }
+
+    .diagram-container {
+      background: white;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      overflow: auto;
+      max-height: 400px;
+    }
+
+    .diagram-container svg {
+      max-width: 100%;
+      height: auto;
+      }
+
+    .error-message {
+      background: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      border: 1px solid #ffcdd2;
     }
 
     footer {
       text-align: center;
-      color: rgba(255, 255, 255, 0.7);
       padding: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    footer p {
+      color: #666;
       font-size: 0.9rem;
-    }
-
-    @media (max-width: 1100px) {
-      .main-content {
-        flex-direction: column;
-      }
-
-      .controls-section {
-        flex: 1;
-      }
-    }
-
-    .title-edit-tooltip {
-      position: absolute;
-      top: -25px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      white-space: nowrap;
-      display: none;
-    }
-
-    .note-header:hover .title-edit-tooltip {
-      display: block;
     }
   </style>
 </head>
 <body>
   <div class="app-container">
     <header>
-      <h1>AI System Architecture Designer</h1>
-      <p class="subtitle">Design the architecture for your software with AI-powered recommendations</p>
+      <h1><i class="fas fa-brain"></i> AI System Architecture Designer</h1>
+      <p class="subtitle">Create, visualize and optimize your system designs with AI-powered architecture generation</p>
     </header>
 
     <div class="main-content">
       <div class="controls-section">
         <div class="control-group">
-          <h2 class="control-title"><i class="fas fa-cube"></i> Application Details</h2>
-
+          <div class="control-title">
+            <i class="fas fa-cog"></i>
+            Application Details
+          </div>
           <label for="appType">Application Type:</label>
           <select id="appType">
-            <option>Web Application</option>
-            <option selected>Mobile App</option>
-            <option>Desktop Software</option>
-            <option>Hybrid App (PWA)</option>
+            <option value="">Select application type...</option>
+            <option value="Web Application">Web Application</option>
+            <option value="Mobile Application">Mobile Application</option>
+            <option value="Desktop Application">Desktop Application</option>
+            <option value="API Service">API Service</option>
+            <option value="Microservices">Microservices</option>
+            <option value="Data Pipeline">Data Pipeline</option>
+            <option value="IoT System">IoT System</option>
+            <option value="AI/ML System">AI/ML System</option>
           </select>
 
-          <label for="userCount">Expected User Scale:</label>
+          <label for="userCount">Expected User Count:</label>
           <select id="userCount">
-            <option>&lt;100 users</option>
-            <option>100–1,000 users</option>
-            <option selected>1,000–10,000 users</option>
-            <option>10,000–100,000 users</option>
-            <option>100,000+ users</option>
+            <option value="">Select user count...</option>
+            <option value="1-100">1-100 users</option>
+            <option value="100-1K">100-1K users</option>
+            <option value="1K-10K">1K-10K users</option>
+            <option value="10K-100K">10K-100K users</option>
+            <option value="100K+">100K+ users</option>
           </select>
         </div>
 
         <div class="control-group">
-          <h2 class="control-title"><i class="fas fa-star"></i> Core Features</h2>
+          <div class="control-title">
+            <i class="fas fa-list"></i>
+            Core Features
+          </div>
           <div class="features-grid">
             <div class="feature-item">
-              <input type="checkbox" id="feature1" checked>
-              <label for="feature1">Multiplayer Mode</label>
+              <input type="checkbox" id="auth" value="User Authentication">
+              <label for="auth">Authentication</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature2" checked>
-              <label for="feature2">Real-time Gameplay</label>
+              <input type="checkbox" id="database" value="Database">
+              <label for="database">Database</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature3" checked>
-              <label for="feature3">Leaderboards</label>
+              <input type="checkbox" id="api" value="API">
+              <label for="api">API</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature4">
-              <label for="feature4">In-game Chat</label>
+              <input type="checkbox" id="cache" value="Caching">
+              <label for="cache">Caching</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature5" checked>
-              <label for="feature5">User Profiles</label>
+              <input type="checkbox" id="search" value="Search">
+              <label for="search">Search</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature6">
-              <label for="feature6">Tournaments</label>
+              <input type="checkbox" id="notification" value="Notifications">
+              <label for="notification">Notifications</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature7" checked>
-              <label for="feature7">Spectator Mode</label>
+              <input type="checkbox" id="file" value="File Upload">
+              <label for="file">File Upload</label>
             </div>
             <div class="feature-item">
-              <input type="checkbox" id="feature8" checked>
-              <label for="feature8">Cross-platform</label>
+              <input type="checkbox" id="analytics" value="Analytics">
+              <label for="analytics">Analytics</label>
             </div>
           </div>
         </div>
 
         <div class="control-group">
-          <h2 class="control-title"><i class="fas fa-file-alt"></i> Project Description</h2>
-          <textarea id="projectDesc">We are building a multiplayer online Tetris game that allows players to compete in real-time. The game should support 1v1 and 2v2 modes, global leaderboards, and user profiles. Players should be able to spectate ongoing games. The system must handle 5,000+ concurrent users with low latency gameplay.</textarea>
+          <div class="control-title">
+            <i class="fas fa-edit"></i>
+            Project Description
+          </div>
+          <textarea id="projectDescription" placeholder="Describe your project requirements, goals, and any specific technical constraints..."></textarea>
         </div>
 
-        <button id="generateBtn">
-          <i class="fas fa-brain"></i> Generate Architecture
+        <button id="generateBtn" class="generate-diagram-btn">
+          <i class="fas fa-magic"></i>
+          Generate Architecture
         </button>
 
-        <button class="add-note-btn" id="addNoteBtn">
-          <i class="fas fa-plus"></i> Add Sticky Note
+        <button id="generateDiagramBtn" class="generate-diagram-btn">
+          <i class="fas fa-project-diagram"></i>
+          Generate Diagram
+        </button>
+
+        <button id="addNoteBtn" class="add-note-btn">
+          <i class="fas fa-plus"></i>
+          Add Sticky Note
         </button>
       </div>
 
       <div class="whiteboard-section" id="whiteboard">
-        <div class="grid-lines"></div>
-
-        <!-- Pre-added notes about the project -->
-        <div class="note" style="top: 120px; left: 150px;">
+        <div class="note" style="top: 50px; left: 50px;">
           <div class="note-header">
             <div>
               <div class="title-edit-tooltip">Double-click to edit title</div>
-              <div class="note-title" tabindex="0">Game Concept</div>
+              <div class="note-title" tabindex="0">Frontend</div>
             </div>
             <div class="note-actions">
               <div class="note-action"><i class="fas fa-times"></i></div>
             </div>
           </div>
-          <div class="note-content">
-            Multiplayer Tetris with:
-            - Real-time 1v1 and 2v2 battles
-            - Global leaderboards
-            - Spectator mode
-            - Customizable themes
-            - Cross-platform play
-            - Skill-based matchmaking
+          <div class="note-content" contenteditable="true">
+            React/Vue.js application
+            User interface components
+            State management
           </div>
         </div>
 
-        <div class="note" style="top: 120px; left: 450px;">
+        <div class="note" style="top: 50px; left: 300px;">
           <div class="note-header">
             <div>
               <div class="title-edit-tooltip">Double-click to edit title</div>
-              <div class="note-title" tabindex="0">Technical Requirements</div>
+              <div class="note-title" tabindex="0">Backend API</div>
             </div>
             <div class="note-actions">
               <div class="note-action"><i class="fas fa-times"></i></div>
             </div>
           </div>
-          <div class="note-content">
-            - Low latency gameplay (&lt;100ms)
-            - Support 5,000+ concurrent users
-            - Real-time multiplayer synchronization
-            - Account system with stats tracking
-            - Anti-cheat mechanisms
-            - Scalable infrastructure
-            - Cross-platform support (Web, iOS, Android)
+          <div class="note-content" contenteditable="true">
+            RESTful API endpoints
+            Business logic
+            Data validation
           </div>
         </div>
 
-        <div class="note" style="top: 120px; left: 750px;">
+        <div class="note" style="top: 200px; left: 50px;">
           <div class="note-header">
             <div>
               <div class="title-edit-tooltip">Double-click to edit title</div>
-              <div class="note-title" tabindex="0">Target Audience</div>
+              <div class="note-title" tabindex="0">Database</div>
             </div>
             <div class="note-actions">
               <div class="note-action"><i class="fas fa-times"></i></div>
             </div>
           </div>
-          <div class="note-content">
-            - Casual gamers (25-45 age group)
-            - Competitive puzzle players
-            - Esports enthusiasts
-            - Nostalgia players (original Tetris fans)
-            - Social gamers
-            - Cross-platform users
-
-            Monetization:
-            - Cosmetic items
-            - Battle pass
-            - Tournament entry fees
-            - Ad-supported free tier
+          <div class="note-content" contenteditable="true">
+            PostgreSQL/MySQL
+            Data persistence
+            Query optimization
           </div>
         </div>
 
-        <div class="note result-note" style="top: 350px; left: 300px; display: none;" id="resultNote">
+        <div class="note result-note" id="resultNote">
           <div class="note-header">
             <div>
               <div class="title-edit-tooltip">Double-click to edit title</div>
@@ -580,82 +591,18 @@
               <div class="note-action"><i class="fas fa-times"></i></div>
             </div>
           </div>
-          <div class="note-content">
-            <strong>Multiplayer Tetris System Architecture</strong>
-
-            <u>Frontend:</u>
-            - React.js with TypeScript for web
-            - React Native for mobile apps
-            - Unity for desktop clients
-            - Redux for state management
-            - WebSockets for real-time communication
-
-            <u>Backend Services:</u>
-            - Node.js with Express.js
-            - Game Server: Dedicated servers for game sessions
-            - Matchmaking Service: Skill-based player matching
-            - User Service: Account management and profiles
-            - Leaderboard Service: Real-time ranking updates
-            - Notification Service: Game invites and updates
-
-            <u>Real-time Communication:</u>
-            - WebSocket for game state synchronization
-            - Redis for pub/sub and caching
-            - Protocol Buffers for efficient data serialization
-
-            <u>Database:</u>
-            - PostgreSQL for relational data (users, matches)
-            - MongoDB for unstructured data (game logs, events)
-            - Redis for leaderboards and caching
-
-            <u>Game Logic:</u>
-            - Deterministic simulation for consistent gameplay
-            - Client-side prediction for smooth experience
-            - Server reconciliation for fairness
-
-            <u>Infrastructure:</u>
-            - AWS EKS for Kubernetes orchestration
-            - AWS GameLift for dedicated game servers
-            - AWS RDS for PostgreSQL
-            - AWS ElastiCache for Redis
-            - CloudFront CDN for static assets
-
-            <u>Monitoring & Analytics:</u>
-            - Prometheus & Grafana for metrics
-            - ELK stack for logging
-            - New Relic for APM
-            - Custom analytics for gameplay metrics
-
-            <u>Scalability Strategy:</u>
-            - Auto-scaling game server instances
-            - Regional deployment for low latency
-            - Database read replicas for high read throughput
-            - Redis Cluster for distributed caching
-            - Load balancers with session affinity
-
-            <u>Security:</u>
-            - JWT authentication
-            - DDoS protection with AWS Shield
-            - Anti-cheat detection system
-            - Regular security audits
-
-            <u>Deployment:</u>
-            - CI/CD pipeline with GitHub Actions
-            - Blue-green deployments
-            - Canary releases for new features
-            - Infrastructure as Code with Terraform
-
-            Estimated Costs:
-            - Development: $150,000
-            - Monthly Infrastructure: $8,000 (at 5k concurrent users)
-            - Time to Market: 6 months
+          <div class="note-content" contenteditable="true">
+            Based on your requirements, here's a recommended architecture...
+          </div>
+          <div class="diagram-container" id="diagramContainer" style="display: none;">
+            <!-- Mermaid diagram will be rendered here -->
           </div>
         </div>
       </div>
     </div>
 
     <div class="trash-bin" id="trashBin">
-      <i class="fas fa-trash-alt"></i>
+      <i class="fas fa-trash"></i>
       <div class="trash-count">0</div>
     </div>
 
@@ -665,12 +612,23 @@
   </div>
 
   <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
       const whiteboard = document.getElementById('whiteboard');
       const addNoteBtn = document.getElementById('addNoteBtn');
       const generateBtn = document.getElementById('generateBtn');
+      const generateDiagramBtn = document.getElementById('generateDiagramBtn');
       const trashBin = document.getElementById('trashBin');
       const resultNote = document.getElementById('resultNote');
+      const diagramContainer = document.getElementById('diagramContainer');
       const trashCount = document.querySelector('.trash-count');
       let noteCount = 3;
       let deletedNotes = 0;
@@ -678,7 +636,6 @@
       let currentNote = null;
       let offsetX, offsetY;
 
-      // Add new sticky note
       addNoteBtn.addEventListener('click', function() {
         noteCount++;
         const x = 100 + (Math.random() * 200);
@@ -707,35 +664,133 @@
         addNoteEvents(note);
       });
 
-      // Generate architecture button
-      generateBtn.addEventListener('click', function() {
-        // Show loading overlay
+      generateBtn.addEventListener('click', async function() {
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = '<div class="spinner"></div>';
         whiteboard.appendChild(overlay);
 
-        // Simulate AI processing time
-        setTimeout(() => {
+        try {
+          const appType = document.getElementById('appType').value;
+          const userCount = document.getElementById('userCount').value;
+          const projectDescription = document.getElementById('projectDescription').value;
+          
+          const selectedFeatures = [];
+          document.querySelectorAll('.feature-item input:checked').forEach(checkbox => {
+            selectedFeatures.push(checkbox.value);
+          });
+
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: projectDescription,
+              appType: appType,
+              features: selectedFeatures,
+              userCount: userCount
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate architecture');
+          }
+
+          const data = await response.json();
+          
+          const resultContent = resultNote.querySelector('.note-content');
+          resultContent.textContent = data.result;
+          
           whiteboard.removeChild(overlay);
           resultNote.style.display = 'block';
-
-          // Scroll to the result note
           resultNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-          // Add drag functionality to the result note
           addNoteEvents(resultNote);
-        }, 2000);
+
+        } catch (error) {
+          console.error('Error generating architecture:', error);
+          whiteboard.removeChild(overlay);
+          alert('生成架构时出错: ' + error.message);
+        }
       });
 
-      // Add events to existing notes
+      generateDiagramBtn.addEventListener('click', async function() {
+        const appType = document.getElementById('appType').value;
+        const userCount = document.getElementById('userCount').value;
+        const projectDescription = document.getElementById('projectDescription').value;
+        
+        if (!appType || !userCount || !projectDescription.trim()) {
+          alert('请先填写应用类型、用户数量和项目描述，然后再生成图表');
+          return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner"></div>';
+        whiteboard.appendChild(overlay);
+
+        try {
+          const selectedFeatures = [];
+          document.querySelectorAll('.feature-item input:checked').forEach(checkbox => {
+            selectedFeatures.push(checkbox.value);
+          });
+
+          const response = await fetch('/generate_diagram', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: projectDescription,
+              appType: appType,
+              features: selectedFeatures,
+              userCount: userCount
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate diagram');
+          }
+
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          if (data.architecture) {
+            const resultContent = resultNote.querySelector('.note-content');
+            resultContent.textContent = data.architecture;
+          }
+
+          diagramContainer.innerHTML = '';
+          diagramContainer.style.display = 'block';
+          
+          const diagramDiv = document.createElement('div');
+          diagramDiv.className = 'mermaid';
+          diagramDiv.textContent = data.diagram;
+          diagramContainer.appendChild(diagramDiv);
+
+          mermaid.init(undefined, diagramDiv);
+
+          whiteboard.removeChild(overlay);
+          resultNote.style.display = 'block';
+          resultNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        } catch (error) {
+          console.error('Error generating diagram:', error);
+          whiteboard.removeChild(overlay);
+          
+          diagramContainer.innerHTML = `<div class="error-message">生成图表时出错: ${error.message}</div>`;
+          diagramContainer.style.display = 'block';
+        }
+      });
+
       document.querySelectorAll('.note').forEach(note => {
         addNoteEvents(note);
       });
 
-      // Add event listeners to a note
       function addNoteEvents(note) {
-        // Delete button
         const deleteBtn = note.querySelector('.note-action');
         deleteBtn.addEventListener('click', function(e) {
           e.stopPropagation();
@@ -749,14 +804,12 @@
           }, 300);
         });
 
-        // Title editing functionality
         const title = note.querySelector('.note-title');
         title.addEventListener('dblclick', function(e) {
           e.stopPropagation();
           this.contentEditable = true;
           this.focus();
 
-          // Select all text for easier editing
           const range = document.createRange();
           range.selectNodeContents(this);
           const sel = window.getSelection();
@@ -767,18 +820,15 @@
         title.addEventListener('blur', function() {
           this.contentEditable = false;
 
-          // If title is empty, restore default
           if (this.textContent.trim() === '') {
             this.textContent = this.dataset.original || 'Untitled Note';
           }
         });
 
-        // Save original title on first interaction
         if (!title.dataset.original) {
           title.dataset.original = title.textContent;
         }
 
-        // Press Enter to finish editing
         title.addEventListener('keydown', function(e) {
           if (e.key === 'Enter') {
             e.preventDefault();
@@ -786,13 +836,11 @@
           }
         });
 
-        // Drag functionality
         const header = note.querySelector('.note-header');
         header.style.cursor = 'move';
 
         header.addEventListener('mousedown', startDrag);
 
-        // Make content editable on double click
         const content = note.querySelector('.note-content');
         content.addEventListener('dblclick', function() {
           this.contentEditable = true;
@@ -804,9 +852,7 @@
         });
       }
 
-      // Drag functionality
       function startDrag(e) {
-        // Don't start drag if we're clicking on the delete button or editing title
         if (e.target.classList.contains('note-action') ||
             e.target.classList.contains('note-title') && e.target.isContentEditable) {
           return;
@@ -829,7 +875,6 @@
         const x = e.clientX - offsetX - whiteboardRect.left;
         const y = e.clientY - offsetY - whiteboardRect.top;
 
-        // Boundary checks
         const maxX = whiteboardRect.width - currentNote.offsetWidth;
         const maxY = whiteboardRect.height - currentNote.offsetHeight;
 
@@ -847,7 +892,6 @@
         document.removeEventListener('mouseup', stopDrag);
       }
 
-      // Trash bin functionality
       trashBin.addEventListener('click', function() {
         if (deletedNotes === 0) {
           alert('Trash bin is empty');

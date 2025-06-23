@@ -4,7 +4,10 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
 import uvicorn
+
+load_dotenv()
 
 class RequestBody(BaseModel):
     prompt: str
@@ -37,31 +40,82 @@ async def generate(req: RequestBody):
     response = await client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system",  "content": "你是一个帮助用户生成软件系统架构设计方案的助手。"},
+            {"role": "system",  "content": "你是一个帮助用户生成软件系统架构设计方案的助手。请用英文回答。"},
             {"role": "user",    "content": full_prompt}
         ]
     )
     return {"result": response.choices[0].message.content}
 
 # 启动： uvicorn backend:app --reload --host 0.0.0.0 --port 8000
-# 生成diagram部分
+
+# 生成diagram部分 - 修改为使用上一步的架构生成结果
 class DiagramRequest(BaseModel):
-    architecture_text:str
+    # 不再需要用户手动输入架构描述，而是使用上一步生成的结果
+    pass
+
 @app.post('/generate_diagram')
-async def generate_diagram(req:DiagramRequest):
-    prompt = f"""
-    你是一个软件架构专家，请将以下系统架构描述转化为 mermaid.js 的流程图（graph TD 格式），只返回代码块，不需要任何解释。
+async def generate_diagram(req: RequestBody):
+    """
+    基于上一步的架构生成结果，自动生成对应的流程图
+    使用与 /api/generate 相同的输入参数，但返回Mermaid图表
+    """
+    # 使用与generate函数相同的逻辑生成架构描述
+    full_prompt = (
+        f"应用类型: {req.appType}\n"
+        f"核心功能: {', '.join(req.features) or '无'}\n"
+        f"预期用户量: {req.userCount}\n"
+        f"项目描述: {req.prompt}"
+    )
+    
+    # 首先生成架构描述
+    architecture_response = await client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system",  "content": "你是一个帮助用户生成软件系统架构设计方案的助手。请用英文回答。"},
+            {"role": "user",    "content": full_prompt}
+        ]
+    )
+    
+    architecture_text = architecture_response.choices[0].message.content
+    
+    # 然后将架构描述转换为Mermaid图表
+    diagram_prompt = f"""
+    你是一个软件架构专家，请将以下系统架构描述转化为 mermaid.js 的流程图（graph TD 格式），只返回代码块，请不要返回```mermaid以及```，不需要任何解释。
 
     架构描述如下：
-    {req.architecture_text}
+    {architecture_text}
     """
+    
     try:
-        response = await client.chat.completions.create(
+        diagram_response = await client.chat.completions.create(
             model="deepseek-chat",
-            messages=[{"role":"user","content":prompt}],
+            messages=[{"role": "user", "content": diagram_prompt}],
             temperature=0.5
-            )
-        diagram_code = response.choices[0].message["content"]
-        return{"diagram":diagram_code}
+        )
+        diagram_code = diagram_response.choices[0].message.content
+        
+        # 确保 diagram_code 是一个字符串再进行处理
+        if diagram_code:
+            # 提取Mermaid代码块，去除可能存在的markdown标记
+            if "```mermaid" in diagram_code:
+                # 提取被 ```mermaid 和 ``` 包裹的内容
+                start = diagram_code.find("```mermaid") + len("```mermaid")
+                end = diagram_code.rfind("```")
+                if start < end:
+                    diagram_code = diagram_code[start:end].strip()
+            elif "```" in diagram_code:
+                # 提取被 ``` 和 ``` 包裹的内容
+                start = diagram_code.find("```") + len("```")
+                end = diagram_code.rfind("```")
+                if start < end:
+                    diagram_code = diagram_code[start:end].strip()
+
+        return {
+            "diagram": diagram_code,
+            "architecture": architecture_text  # 同时返回架构描述，方便前端显示
+        }
     except Exception as e:
-        return{"error":str(e)}
+        return {"error": str(e)}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
