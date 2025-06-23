@@ -6,6 +6,8 @@
     <title>AI System Architecture Designer | Online Tetris</title>
     <!-- 引入字体图标库 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入Mermaid.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <style>
          /* =========================
         全局样式与布局
@@ -224,6 +226,66 @@
          .add-note-btn {
              background: linear-gradient(135deg, #ff8c00, #ff5200);
              margin-top: 10px;
+         }
+
+         /* =========================
+        切换按钮样式
+        ========================= */
+         .toggle-view-btn {
+             background: linear-gradient(135deg, #28a745, #20c997);
+             color: white;
+             border: none;
+             padding: 8px 16px;
+             border-radius: 6px;
+             font-size: 0.9rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: all 0.3s;
+             margin-top: 10px;
+             width: auto;
+             display: inline-flex;
+             align-items: center;
+             gap: 6px;
+         }
+
+         .toggle-view-btn:hover {
+             transform: translateY(-2px);
+             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+         }
+
+         .toggle-view-btn.active {
+             background: linear-gradient(135deg, #dc3545, #c82333);
+         }
+
+         /* =========================
+        Mermaid图表容器样式
+        ========================= */
+         .mermaid-container {
+             background: white;
+             border: 1px solid #ddd;
+             border-radius: 8px;
+             padding: 15px;
+             margin-top: 10px;
+             overflow: auto;
+             max-height: 400px;
+             display: none;
+         }
+
+         .mermaid-container svg {
+             max-width: 100%;
+             height: auto;
+         }
+
+         .mermaid-container.show {
+             display: block;
+         }
+
+         .code-container {
+             display: block;
+         }
+
+         .code-container.hide {
+             display: none;
          }
 
          /* =========================
@@ -469,6 +531,110 @@
          .note-header:hover .title-edit-tooltip {
              display: block;
          }
+
+         /* =========================
+        垃圾桶列表样式
+        ========================= */
+         .trash-list {
+             display: none;
+             position: absolute;
+             bottom: 80px;
+             right: 0;
+             min-width: 300px;
+             max-height: 400px;
+             overflow: auto;
+             background: #fff;
+             border-radius: 10px;
+             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+             z-index: 200;
+             padding: 10px 0;
+             font-size: 13px;
+             line-height: 1.5;
+         }
+
+         .trash-list-item {
+             display: flex;
+             align-items: center;
+             justify-content: space-between;
+             padding: 8px 20px;
+             cursor: grab;
+             border-bottom: 1px solid #eee;
+             font-size: 13px;
+             transition: background-color 0.2s;
+         }
+
+         .trash-list-item:hover {
+             background-color: #f8f9fa;
+         }
+
+         .trash-list-item button {
+             margin-left: 10px;
+             font-size: 12px;
+             padding: 2px 10px;
+             transition: transform 0.2s;
+         }
+
+         .trash-list-item button:hover {
+             transform: scale(1.1);
+         }
+
+         .trash-header {
+             padding: 10px 20px;
+             border-bottom: 2px solid #ff6b6b;
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             background: #fff5f5;
+         }
+
+         .trash-header button {
+             background: #ff6b6b;
+             color: white;
+             border: none;
+             padding: 4px 8px;
+             border-radius: 4px;
+             cursor: pointer;
+             font-size: 12px;
+             transition: background-color 0.2s;
+         }
+
+         .trash-header button:hover {
+             background: #ff5252;
+         }
+
+         .restore-btn {
+             width: 24px;
+             height: 24px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             background: #ff9800;
+             border: none;
+             border-radius: 4px;
+             cursor: pointer;
+             transition: background-color 0.2s;
+         }
+
+         .restore-btn:hover {
+             background: #f57c00;
+         }
+
+         .delete-btn {
+             width: 24px;
+             height: 24px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             background: #ff6b6b;
+             border: none;
+             border-radius: 4px;
+             cursor: pointer;
+             transition: background-color 0.2s;
+         }
+
+         .delete-btn:hover {
+             background: #ff5252;
+         }
     </style>
 </head>
 <body>
@@ -553,7 +719,7 @@
                 <button id="generateBtn">
                     <i class="fas fa-brain"></i> Generate Architecture
                 </button>
-                <!--生成流程图按钮-->>
+                <!--生成流程图按钮-->
                 <button id="generateDiagramBtn">
                     <i class="fas fa-project-diagram"></i> Generate Diagram
                 </button>
@@ -660,6 +826,8 @@
         <div class="trash-bin" id="trashBin">
             <i class="fas fa-trash-alt"></i>
             <div class="trash-count">0</div>
+            <div class="trash-list" style="display:none; position:absolute; bottom:80px; right:0; min-width:200px; max-height:300px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0;">
+            </div>
         </div>
 
         <!-- 页脚信息 -->
@@ -669,6 +837,16 @@
     </div>
 
     <script>
+        // 初始化Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+
         // =========================
         // 便签与白板功能脚本
         // =========================
@@ -676,14 +854,21 @@
             const whiteboard = document.getElementById('whiteboard');
             const addNoteBtn = document.getElementById('addNoteBtn');
             const generateBtn = document.getElementById('generateBtn');
+            const generateDiagramBtn = document.getElementById('generateDiagramBtn');
             const trashBin = document.getElementById('trashBin');
             const resultNote = document.getElementById('resultNote');
             const trashCount = document.querySelector('.trash-count');
+            const trashList = trashBin.querySelector('.trash-list');
             let noteCount = 3;
             let deletedNotes = 0;
             let isDragging = false;
             let currentNote = null;
             let offsetX, offsetY;
+            let deletedNotesArr = [];
+            let dragPreview = null;
+            let trashListVisible = false;
+            let diagramHistory = [];
+            let diagramNoteRef = null;
 
             // 添加新便签
             addNoteBtn.addEventListener('click', function () {
@@ -715,36 +900,102 @@
             });
 
             // 生成架构按钮事件
-            generateBtn.addEventListener('click', function () {
+            generateBtn.addEventListener('click', async function () {
                 // 显示加载遮罩
                 const overlay = document.createElement('div');
                 overlay.className = 'loading-overlay';
                 overlay.innerHTML = '<div class="spinner"></div>';
                 whiteboard.appendChild(overlay);
 
-                // 模拟AI处理时间
-                setTimeout(() => {
+                // 收集参数
+                const appType = document.getElementById('appType').value;
+                const userCount = document.getElementById('userCount').value;
+                const projectDesc = document.getElementById('projectDesc').value;
+                // 收集功能
+                const features = [];
+                for (let i = 1; i <= 8; i++) {
+                    if (document.getElementById('feature' + i).checked) {
+                        features.push(document.querySelector('label[for="feature' + i + '"]').textContent);
+                    }
+                }
+
+                // 检查 resultNote 是否还在白板上，不在则重新创建
+                let resultNote = document.getElementById('resultNote');
+                if (!resultNote || !whiteboard.contains(resultNote)) {
+                    resultNote = document.createElement('div');
+                    resultNote.className = 'note result-note';
+                    resultNote.id = 'resultNote';
+                    resultNote.style.top = '350px';
+                    resultNote.style.left = '300px';
+                    resultNote.style.display = 'none';
+                    resultNote.innerHTML = `
+                        <div class="note-header">
+                            <div>
+                                <div class="title-edit-tooltip">Double-click to edit title</div>
+                                <div class="note-title" tabindex="0">AI Architecture Proposal</div>
+                            </div>
+                            <div class="note-actions">
+                                <div class="note-action"><i class="fas fa-times"></i></div>
+                            </div>
+                        </div>
+                        <div class="note-content"></div>
+                    `;
+                    whiteboard.appendChild(resultNote);
+                }
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/generate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            prompt: projectDesc,
+                            appType: appType,
+                            features: features,
+                            userCount: userCount
+                        })
+                    });
+                    const data = await response.json();
                     whiteboard.removeChild(overlay);
                     resultNote.style.display = 'block';
-
-                    // 滚动到结果便签
+                    resultNote.querySelector('.note-content').innerText = data.result || 'No result.';
                     resultNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    // 给结果便签添加拖拽功能
                     addNoteEvents(resultNote);
-                }, 2000);
+                } catch (err) {
+                    whiteboard.removeChild(overlay);
+                    alert('架构生成服务连接失败，请确认后端服务已启动并允许本地访问。');
+                    console.error('生成架构请求失败:', err);
+                }
             });
 
-            // 生成流程图按钮事件
-            const generate DiagramBtn = document.getElementByID('generateDiagramBtn');
+            // 修改生成 diagram 逻辑
 
             generateDiagramBtn.addEventListener('click',async function(){
-                const resultNote = document.getElementById('resultNote');
-                const architectureText = resultNote.querySelector('.note-content').innerText;
-                if(!architectureText.trim()){
-                    alert('No architecture content found to generate diagram.');
+                console.log('Generate Diagram button clicked!'); // 调试信息
+                
+                // 检查是否已经填写了必要的表单信息
+                const appType = document.getElementById('appType').value;
+                const userCount = document.getElementById('userCount').value;
+                const projectDesc = document.getElementById('projectDesc').value;
+                
+                console.log('Form values:', { appType, userCount, projectDesc }); // 调试信息
+                
+                if (!appType || !userCount || !projectDesc.trim()) {
+                    alert('请先填写应用类型、用户数量和项目描述，然后再生成图表');
                     return;
                 }
+
+                // 收集选中的功能 - 修复选择器
+                const features = [];
+                for (let i = 1; i <= 8; i++) {
+                    if (document.getElementById('feature' + i).checked) {
+                        features.push(document.querySelector('label[for="feature' + i + '"]').textContent);
+                    }
+                }
+                
+                console.log('Selected features:', features); // 调试信息
+
                 // 显示加载动画
                 const overlay = document.createElement('div');
                 overlay.className = 'loading-overlay';
@@ -752,45 +1003,124 @@
                 whiteboard.appendChild(overlay);
 
                 try{
+                    console.log('Sending request to backend...'); // 调试信息
                     const response = await fetch('http://127.0.0.1:8000/generate_diagram',{
-                        method:'Post',
+                        method:'POST',
                         headers:{
                             'Content-Type':'application/json'
                         },
-                        body:JSON.stringify({architecture:architectureText})
+                        body:JSON.stringify({
+                            prompt: projectDesc,
+                            appType: appType,
+                            features: features,
+                            userCount: userCount
+                        })
                     });
 
                     const data = await response.json();
+                    console.log('Response received:', data); // 调试信息
 
                     // 移除加载动画
                     whiteboard.removeChild(overlay);
 
-                    //创建一个新的Note显示图示文本（或图片URL）
-                     const diagramNote = document.createElement('div');
-                     diagramNote.className = 'note result-note';
-                     diagramNote.style.top = '500px';
-                     diagramNote.style.left = '400px';
-
-                     diagramNote.innerHTML = `
-                        <div class="note-header">
-                            <div>
-                                <div class="title-edit-tooltip">Double-click to edit title</div>
-                                <div class="note-title" tabindex="0">Generated Diagram</div>
-                            </div>
-                            <div class="note-actions">
-                                <div class="note-action"><i class="fas fa-times"></i></div>
-                            </div>
-                        </div>
-                        <div class="note-content" contenteditable="true">${data.diagram}</div>
-                    `;
-
-                    whiteboard.appendChild(diagramNote);
-                    addNoteEvents(diagramNote); //重用拖曳、编辑等功能
-                 }catch(err){
-                    whiteboard.removeChild(overlay);
-                    alert('Failed to generate diagram.');
-                    console.error(err);
+                    // 移除之前的 diagram 便利贴
+                    if (diagramNoteRef && whiteboard.contains(diagramNoteRef)) {
+                      whiteboard.removeChild(diagramNoteRef);
+                      diagramNoteRef = null;
                     }
+
+                    // 创建一个新的Note显示图示文本，包含切换按钮
+                    const diagramNote = document.createElement('div');
+                    diagramNote.className = 'note result-note';
+                    diagramNote.style.top = '500px';
+                    diagramNote.style.left = '400px';
+                    diagramNote.style.minWidth = '350px';
+                    diagramNote.style.maxWidth = '500px';
+                    diagramNote.innerHTML = `
+                      <div class="note-header">
+                          <div>
+                              <div class="title-edit-tooltip">Double-click to edit title</div>
+                              <div class="note-title" tabindex="0">Generated Diagram</div>
+                          </div>
+                          <div class="note-actions">
+                              <div class="note-action"><i class="fas fa-times"></i></div>
+                          </div>
+                      </div>
+                      <div class="note-content">
+                          <div class="code-container">
+                              <pre style="font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin: 0; padding: 10px; background: #f8f9fa; border-radius: 5px; max-height: 300px; overflow: auto;">${data.diagram}</pre>
+                          </div>
+                          <div class="mermaid-container" id="mermaidContainer">
+                              <!-- Mermaid图表将在这里渲染 -->
+                          </div>
+                          <button class="toggle-view-btn" id="toggleViewBtn">
+                              <i class="fas fa-eye"></i> View Diagram
+                          </button>
+                      </div>
+                    `;
+                    whiteboard.appendChild(diagramNote);
+                    addNoteEvents(diagramNote);
+                    diagramNoteRef = diagramNote;
+                    
+                    // 添加切换按钮事件
+                    const toggleBtn = diagramNote.querySelector('#toggleViewBtn');
+                    const codeContainer = diagramNote.querySelector('.code-container');
+                    const mermaidContainer = diagramNote.querySelector('#mermaidContainer');
+                    
+                    toggleBtn.addEventListener('click', function() {
+                        if (mermaidContainer.classList.contains('show')) {
+                            // 切换到代码视图
+                            mermaidContainer.classList.remove('show');
+                            codeContainer.classList.remove('hide');
+                            toggleBtn.innerHTML = '<i class="fas fa-eye"></i> View Diagram';
+                            toggleBtn.classList.remove('active');
+                        } else {
+                            // 切换到图表视图
+                            codeContainer.classList.add('hide');
+                            mermaidContainer.classList.add('show');
+                            toggleBtn.innerHTML = '<i class="fas fa-code"></i> View Code';
+                            toggleBtn.classList.add('active');
+                            
+                            // 渲染Mermaid图表
+                            if (!mermaidContainer.querySelector('.mermaid')) {
+                                const mermaidDiv = document.createElement('div');
+                                mermaidDiv.className = 'mermaid';
+                                mermaidDiv.textContent = data.diagram;
+                                mermaidContainer.appendChild(mermaidDiv);
+                                
+                                // 初始化Mermaid
+                                mermaid.initialize({
+                                    startOnLoad: true,
+                                    theme: 'default',
+                                    flowchart: {
+                                        useMaxWidth: true,
+                                        htmlLabels: true
+                                    }
+                                });
+                                mermaid.init(undefined, mermaidDiv);
+                            }
+                        }
+                    });
+                    
+                    // 保存到历史
+                    diagramHistory.push({ content: data.diagram });
+
+                    // 如果API返回了架构描述，更新结果便签
+                    if (data.architecture) {
+                        const resultNote = document.getElementById('resultNote');
+                        if (resultNote) {
+                            const resultContent = resultNote.querySelector('.note-content');
+                            if (resultContent) {
+                                resultContent.textContent = data.architecture;
+                            }
+                        }
+                    }
+                  }catch(err){
+                    console.error('Error in generateDiagramBtn:', err); // 调试信息
+                    whiteboard.removeChild(overlay);
+                    alert('流程图生成服务连接失败，请确认后端服务已启动并允许本地访问。');
+                    console.error('生成流程图请求失败:', err);
+                }
             });
 
             // 给所有已有便签添加事件
@@ -800,18 +1130,54 @@
 
             // 便签事件绑定函数
             function addNoteEvents(note) {
-                // 删除按钮事件
+                // 删除按钮事件和拖拽删除
                 const deleteBtn = note.querySelector('.note-action');
+                // 删除按钮点击删除
                 deleteBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     note.style.transform = 'scale(0.9)';
                     note.style.opacity = '0.5';
-
                     setTimeout(() => {
-                        whiteboard.removeChild(note);
-                        deletedNotes++;
-                        trashCount.textContent = deletedNotes;
+                        deletedNotesArr.push({
+                            html: note.outerHTML,
+                            top: note.style.top,
+                            left: note.style.left
+                        });
+                        if (whiteboard.contains(note)) {
+                            whiteboard.removeChild(note);
+                            deletedNotes++;
+                            trashCount.textContent = deletedNotes;
+                            updateTrashList();
+                        }
                     }, 300);
+                });
+                // 拖拽功能（自定义拖动，便签本身不设置draggable）
+                note.removeAttribute('draggable');
+                note.addEventListener('mousedown', startDrag);
+                // 删除按钮支持原生拖拽到垃圾桶
+                deleteBtn.setAttribute('draggable', 'true');
+                deleteBtn.addEventListener('dragstart', function(e) {
+                    e.stopPropagation();
+                    e.dataTransfer.setData('text/plain', 'delete-note');
+                    // 记录当前拖拽的 note
+                    currentNote = note;
+                    // 拖拽预览
+                    dragPreview = note.cloneNode(true);
+                    dragPreview.style.position = 'absolute';
+                    dragPreview.style.pointerEvents = 'none';
+                    dragPreview.style.opacity = '0.7';
+                    dragPreview.style.zIndex = '9999';
+                    dragPreview.style.left = '-9999px';
+                    dragPreview.style.top = '-9999px';
+                    document.body.appendChild(dragPreview);
+                    e.dataTransfer.setDragImage(dragPreview, 100, 30);
+                });
+                deleteBtn.addEventListener('dragend', function() {
+                    if (dragPreview && dragPreview.parentNode) {
+                        dragPreview.parentNode.removeChild(dragPreview);
+                        dragPreview = null;
+                    }
+                    currentNote = null;
                 });
 
                 // 标题双击编辑
@@ -851,12 +1217,6 @@
                     }
                 });
 
-                // 拖拽功能
-                const header = note.querySelector('.note-header');
-                header.style.cursor = 'move';
-
-                header.addEventListener('mousedown', startDrag);
-
                 // 内容双击可编辑
                 const content = note.querySelector('.note-content');
                 content.addEventListener('dblclick', function () {
@@ -871,14 +1231,16 @@
 
             // 拖拽开始
             function startDrag(e) {
-                // 删除按钮或正在编辑标题时不触发拖拽
-                if (e.target.classList.contains('note-action') ||
-                    e.target.classList.contains('note-title') && e.target.isContentEditable) {
+                // 删除按钮、标题或内容正在编辑时不触发拖拽
+                if (
+                    e.target.classList.contains('note-action') ||
+                    (e.target.classList.contains('note-title') && e.target.isContentEditable) ||
+                    (e.target.classList.contains('note-content') && e.target.isContentEditable)
+                ) {
                     return;
                 }
-
                 isDragging = true;
-                currentNote = this.parentElement;
+                currentNote = this; // 绑定到整个note
                 offsetX = e.clientX - currentNote.getBoundingClientRect().left;
                 offsetY = e.clientY - currentNote.getBoundingClientRect().top;
 
@@ -916,12 +1278,242 @@
 
             // 垃圾桶点击事件
             trashBin.addEventListener('click', function () {
-                if (deletedNotes === 0) {
-                    alert('Trash bin is empty');
+                // 不再弹窗
+            });
+
+            // 垃圾桶拖拽恢复功能
+            trashBin.setAttribute('draggable', 'true');
+
+            trashBin.addEventListener('dragstart', function (e) {
+                if (deletedNotesArr.length === 0) return;
+                const last = deletedNotesArr[deletedNotesArr.length - 1];
+                e.dataTransfer.setData('text/plain', 'restore-note');
+                // 拖拽预览节点
+                dragPreview = document.createElement('div');
+                dragPreview.innerHTML = last.html;
+                dragPreview.style.position = 'absolute';
+                dragPreview.style.pointerEvents = 'none';
+                dragPreview.style.opacity = '0.7';
+                dragPreview.style.zIndex = '9999';
+                document.body.appendChild(dragPreview);
+                e.dataTransfer.setDragImage(dragPreview, 100, 30);
+            });
+
+            trashBin.addEventListener('dragend', function () {
+                if (dragPreview && dragPreview.parentNode) {
+                    dragPreview.parentNode.removeChild(dragPreview);
+                    dragPreview = null;
+                }
+            });
+
+            // 点击垃圾桶切换显示/隐藏
+            trashBin.addEventListener('click', function (e) {
+                if (deletedNotesArr.length === 0) return;
+                trashListVisible = !trashListVisible;
+                trashList.style.display = trashListVisible ? 'block' : 'none';
+                e.stopPropagation();
+            });
+
+            // 点击页面其他地方关闭
+            window.addEventListener('click', function () {
+                if (trashListVisible) {
+                    trashList.style.display = 'none';
+                    trashListVisible = false;
+                }
+            });
+
+            // 阻止点击 list 区域冒泡，避免误关闭
+            trashList.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            // 更新回收箱列表
+            function updateTrashList() {
+                trashList.innerHTML = '';
+                
+                // 重新添加头部和清空按钮
+                const header = document.createElement('div');
+                header.className = 'trash-header';
+                header.innerHTML = `
+                    <span style="font-weight:bold; color:#333;">Deleted Notes</span>
+                    <button id="clearTrashBtn">Clear All</button>
+                `;
+                trashList.appendChild(header);
+                
+                // 添加清空按钮事件
+                const clearBtn = header.querySelector('#clearTrashBtn');
+                clearBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (deletedNotesArr.length > 0) {
+                        if (confirm('Are you sure you want to permanently delete all items in the trash?')) {
+                            deletedNotesArr = [];
+                            deletedNotes = 0;
+                            trashCount.textContent = '0';
+                            updateTrashList();
+                            trashList.style.display = 'none';
+                            trashListVisible = false;
+                        }
+                    }
+                });
+                
+                if (deletedNotesArr.length === 0) {
+                    // 空状态提示
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.style.color = '#888';
+                    emptyMsg.style.fontSize = '13px';
+                    emptyMsg.style.padding = '8px 20px';
+                    emptyMsg.style.borderBottom = '1px solid #eee';
+                    emptyMsg.textContent = 'No deleted notes yet.';
+                    trashList.appendChild(emptyMsg);
+                    // 1秒后自动关闭
+                    setTimeout(() => {
+                        trashList.style.display = 'none';
+                        trashListVisible = false;
+                    }, 1000);
+                    // 同步计数
+                    trashCount.textContent = '0';
                     return;
                 }
+                deletedNotesArr.forEach((item, idx) => {
+                    // 提取标题
+                    let temp = document.createElement('div');
+                    temp.innerHTML = item.html;
+                    let title = temp.querySelector('.note-title')?.textContent || 'Untitled';
+                    // 创建列表项
+                    const li = document.createElement('div');
+                    li.className = 'trash-list-item';
+                    li.setAttribute('draggable', 'true');
+                    li.innerHTML = `
+                        <span style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:normal;word-break:break-all;display:inline-block;vertical-align:middle;">${title}</span>
+                        <div style="display:flex; gap:5px;">
+                            <button class="restore-btn" data-idx="${idx}"><i class='fas fa-undo' style='font-size:14px;color:#fff;'></i></button>
+                            <button class="delete-btn" data-idx="${idx}"><i class='fas fa-trash' style='font-size:14px;color:#fff;'></i></button>
+                        </div>
+                    `;
+                    // 拖拽恢复
+                    li.addEventListener('dragstart', function(e) {
+                        e.dataTransfer.setData('text/plain', idx);
+                        // 拖拽预览
+                        dragPreview = document.createElement('div');
+                        dragPreview.innerHTML = item.html;
+                        dragPreview.style.position = 'absolute';
+                        dragPreview.style.pointerEvents = 'none';
+                        dragPreview.style.opacity = '0.7';
+                        dragPreview.style.zIndex = '9999';
+                        document.body.appendChild(dragPreview);
+                        e.dataTransfer.setDragImage(dragPreview, 100, 30);
+                    });
+                    li.addEventListener('dragend', function() {
+                        if (dragPreview && dragPreview.parentNode) {
+                            dragPreview.parentNode.removeChild(dragPreview);
+                            dragPreview = null;
+                        }
+                    });
+                    // 点击恢复
+                    li.querySelector('.restore-btn').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        restoreNote(idx, null, null);
+                    });
+                    // 点击永久删除
+                    li.querySelector('.delete-btn').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const idxToDelete = parseInt(this.dataset.idx);
+                        if (confirm('Are you sure you want to permanently delete this note?')) {
+                            deletedNotesArr.splice(idxToDelete, 1);
+                            deletedNotes--;
+                            trashCount.textContent = deletedNotes;
+                            updateTrashList();
+                            // 如果回收箱已空，自动关闭弹窗
+                            if (deletedNotesArr.length === 0 && trashListVisible) {
+                                setTimeout(() => {
+                                    trashList.style.display = 'none';
+                                    trashListVisible = false;
+                                }, 400);
+                            }
+                        }
+                    });
+                    trashList.appendChild(li);
+                });
+            }
 
-                alert(`Trash bin contains ${deletedNotes} deleted notes.`);
+            // 恢复便签函数
+            function restoreNote(idx, x, y) {
+                const item = deletedNotesArr.splice(idx, 1)[0];
+                const temp = document.createElement('div');
+                temp.innerHTML = item.html;
+                const restoredNote = temp.firstElementChild;
+                // 定位
+                if (x !== null && y !== null) {
+                    const whiteboardRect = whiteboard.getBoundingClientRect();
+                    restoredNote.style.left = (x - whiteboardRect.left - 50) + 'px';
+                    restoredNote.style.top = (y - whiteboardRect.top - 20) + 'px';
+                } else {
+                    restoredNote.style.left = item.left;
+                    restoredNote.style.top = item.top;
+                }
+                restoredNote.style.transform = '';
+                restoredNote.style.opacity = '1';
+                whiteboard.appendChild(restoredNote);
+                addNoteEvents(restoredNote);
+                deletedNotes--;
+                trashCount.textContent = deletedNotes;
+                updateTrashList();
+                // 如果回收箱已空，自动关闭弹窗
+                if (deletedNotesArr.length === 0 && trashListVisible) {
+                    setTimeout(() => {
+                        trashList.style.display = 'none';
+                        trashListVisible = false;
+                    }, 400);
+                }
+            }
+
+            // 拖拽恢复（支持从 trash-list 拖拽）
+            whiteboard.addEventListener('dragover', function (e) {
+                if (deletedNotesArr.length === 0) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            whiteboard.addEventListener('drop', function (e) {
+                if (deletedNotesArr.length === 0) return;
+                e.preventDefault();
+                let idx = e.dataTransfer.getData('text/plain');
+                idx = parseInt(idx);
+                if (isNaN(idx) || idx < 0 || idx >= deletedNotesArr.length) return;
+                restoreNote(idx, e.clientX, e.clientY);
+            });
+
+            // 垃圾桶支持拖拽删除
+            trashBin.addEventListener('dragover', function(e) {
+                // 允许拖入
+                if (currentNote) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                }
+            });
+            trashBin.addEventListener('drop', function(e) {
+                if (currentNote && whiteboard.contains(currentNote)) {
+                    e.preventDefault();
+                    // 删除动画
+                    const noteToDelete = currentNote;
+                    currentNote = null; // 立即清空，防止多次触发
+                    noteToDelete.style.transform = 'scale(0.9)';
+                    noteToDelete.style.opacity = '0.5';
+                    setTimeout(() => {
+                        // 再次判断节点有效性
+                        if (noteToDelete && whiteboard.contains(noteToDelete)) {
+                            deletedNotesArr.push({
+                                html: noteToDelete.outerHTML,
+                                top: noteToDelete.style.top,
+                                left: noteToDelete.style.left
+                            });
+                            whiteboard.removeChild(noteToDelete);
+                            deletedNotes++;
+                            trashCount.textContent = deletedNotes;
+                            updateTrashList();
+                        }
+                    }, 200);
+                }
             });
         });
     </script>
