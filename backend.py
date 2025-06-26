@@ -1,19 +1,20 @@
 import os
 from typing import List
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request,Body
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 import uvicorn
 
-load_dotenv()
+load_dotenv('api.env')
 
 class RequestBody(BaseModel):
     prompt: str
     appType: str
     features: List[str]
     userCount: str
+    notes: List[str]
 
 app = FastAPI()
 app.add_middleware(
@@ -24,7 +25,7 @@ app.add_middleware(
 )
 
 client = AsyncOpenAI(
-    api_key=os.getenv("API_KEY"),
+    api_key=os.getenv("OPENAI_API_KEY"),
     base_url="https://dseek.aikeji.vip/v1"
 )
 
@@ -35,6 +36,7 @@ async def generate(req: RequestBody):
         f"应用类型: {req.appType}\n"
         f"核心功能: {', '.join(req.features) or '无'}\n"
         f"预期用户量: {req.userCount}\n"
+        f"用户输入标签: {chr(10).join(req.notes) or '无'}\n"
         f"项目描述: {req.prompt}"
     )
     response = await client.chat.completions.create(
@@ -116,6 +118,29 @@ async def generate_diagram(req: RequestBody):
         }
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/api/note_hint")
+async def note_hint(data: dict = Body(...)):
+    existing_notes = data.get("existingNotes", "")
+    title = data.get("title", "New Note")
+
+    full_prompt = (
+        f"You are helping a user design a software architecture using sticky notes.\n"
+        f"The user has already written the following notes:\n\n"
+        f"{existing_notes}\n\n"
+        f"Now they added a new note titled: {title}\n"
+        f"Please suggest content for this note that complements the existing ones."
+    )
+
+    response = await client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "You are an expert software architect assistant."},
+            {"role": "user", "content": full_prompt}
+        ]
+    )
+
+    return {"suggestion": response.choices[0].message.content.strip()}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -389,6 +389,7 @@
              min-height: 300px;
              max-height: 400px;
              z-index: 20;
+             position:relative;
          }
 
              .result-note .note-content {
@@ -396,6 +397,70 @@
                  font-size: 0.9rem;
                  white-space: pre-wrap;
              }
+
+            /* =========================
+            保存样式 - 结果便签用
+            ========================= */
+            .result-note .save-btn {
+                position: absolute;
+                right: 10px;
+                bottom: 10px;
+                width: 30px;
+                height: 30px;
+                background-color: #4CAF50;
+                border: none;
+                border-radius: 50%;
+                color: white;
+                font-size: 1rem;
+                cursor: pointer;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+                z-index: 10;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.3s ease;
+            }
+
+                .result-note .save-btn:hover {
+                    background-color: #45a049;
+                }
+         /* =========================
+        文档保存区域样式
+        ========================= */
+        .doc-bin {
+            position: fixed;
+            right: 30px;
+            bottom: 120px;
+            background: rgba(255, 255, 255, 0.9); 
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        .doc-bin:hover {
+            transform: scale(1.1);
+            background: rgba(50, 120, 255, 0.9);
+            }
+        .doc-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff6b6b; 
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
 
          /* =========================
         垃圾桶区域样式
@@ -818,6 +883,7 @@
                         <strong>Multiplayer Tetris System Architecture</strong>
                         ...
                     </div>
+                    <button class="save-btn">💾</button> <!-- 保存按钮 -->
                 </div>
             </div>
         </div>
@@ -827,6 +893,13 @@
             <i class="fas fa-trash-alt"></i>
             <div class="trash-count">0</div>
             <div class="trash-list" style="display:none; position:absolute; bottom:80px; right:0; min-width:200px; max-height:300px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0;">
+            </div>
+        </div>
+        <!-- 固定在左下角的文档按钮，用于显示保存的草稿列表 -->
+        <div class="doc-bin" id="docBin">
+            <i class="fas fa-file-alt"></i> <!-- Font Awesome 文档图标 -->
+            <div class="doc-count">0</div> <!-- 可选：显示草稿数量 -->
+            <div class="doc-list" style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
             </div>
         </div>
 
@@ -859,8 +932,12 @@
             const resultNote = document.getElementById('resultNote');
             const trashCount = document.querySelector('.trash-count');
             const trashList = trashBin.querySelector('.trash-list');
+            const docBin = document.getElementById('docBin');
+            const docCount = document.querySelector('.doc-count');
+            const docList = docBin.querySelector('.doc-list');
             let noteCount = 3;
             let deletedNotes = 0;
+            let savedNotesArr = []; // 用于保存保存的草稿便签内容
             let isDragging = false;
             let currentNote = null;
             let offsetX, offsetY;
@@ -918,7 +995,11 @@
                         features.push(document.querySelector('label[for="feature' + i + '"]').textContent);
                     }
                 }
-
+                //收集便签内容
+                const notes = Array.from(document.querySelectorAll(".note"))
+                    .map(note => note.innerText.trim())
+                    .filter(text => text !== "");
+                
                 // 检查 resultNote 是否还在白板上，不在则重新创建
                 let resultNote = document.getElementById('resultNote');
                 if (!resultNote || !whiteboard.contains(resultNote)) {
@@ -953,7 +1034,8 @@
                             prompt: projectDesc,
                             appType: appType,
                             features: features,
-                            userCount: userCount
+                            userCount: userCount,
+                            notes:notes
                         })
                     });
                     const data = await response.json();
@@ -1228,7 +1310,24 @@
                     this.contentEditable = false;
                 });
             }
+                //如果内容为空，由llm提供灵感
+                if (content.innerText.trim() === "") {
+                    content.innerText = "(Generating suggestion from AI...)";
+                    const existingNotes = Array.from(document.querySelectorAll(".note"))
+                        .map(el => el.innerText.trim())
+                        .filter(text => text.length > 0)
+                        .join("\n\n");
 
+                    fetch("/api/note_hint", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ existingNotes, title })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            noteElement.querySelector(".note-content").innerText = data.suggestion;
+                        });
+                }
             // 拖拽开始
             function startDrag(e) {
                 // 删除按钮、标题或内容正在编辑时不触发拖拽
