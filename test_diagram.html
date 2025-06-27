@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,429 +10,430 @@
     <!-- 引入Mermaid.js库 -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <style>
-         /* =========================
+        /* =========================
         全局样式与布局
         ========================= */
-         * {
-             margin: 0;
-             padding: 0;
-             box-sizing: border-box;
-             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-         }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-         body {
-             /* 背景渐变与基础样式 */
-             background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
-             color: #333;
-             min-height: 100vh;
-             padding: 20px;
-             overflow-x: hidden;
-         }
+        body {
+            /* 背景渐变与基础样式 */
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
 
-         .app-container {
-             /* 页面主容器，居中显示 */
-             max-width: 1400px;
-             margin: 0 auto;
-             display: flex;
-             flex-direction: column;
-             gap: 20px;
-         }
+        .app-container {
+            /* 页面主容器，居中显示 */
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-         /* =========================
+        /* =========================
         头部区域样式
         ========================= */
-         header {
-             text-align: center;
-             padding: 20px;
-             background: rgba(255, 255, 255, 0.9);
-             border-radius: 15px;
-             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-             backdrop-filter: blur(10px);
-             position: relative;
-             overflow: hidden;
-         }
+        header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
 
-             header::before {
-                 /* 渐变色条装饰 */
-                 content: "";
-                 position: absolute;
-                 top: 0;
-                 left: 0;
-                 right: 0;
-                 height: 5px;
-                 background: linear-gradient(90deg, #ff8c00, #ff0080, #00c9ff);
-             }
+        header::before {
+            /* 渐变色条装饰 */
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff8c00, #ff0080, #00c9ff);
+        }
 
-         h1 {
-             /* 标题渐变文字 */
-             font-size: 2.8rem;
-             background: linear-gradient(90deg, #1a2a6c, #b21f1f);
-             -webkit-background-clip: text;
-             background-clip: text;
-             color: transparent;
-             margin-bottom: 10px;
-         }
+        h1 {
+            /* 标题渐变文字 */
+            font-size: 2.8rem;
+            background: linear-gradient(90deg, #1a2a6c, #b21f1f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
 
-         .subtitle {
-             /* 副标题样式 */
-             font-size: 1.2rem;
-             color: #555;
-             max-width: 800px;
-             margin: 0 auto;
-             line-height: 1.6;
-         }
+        .subtitle {
+            /* 副标题样式 */
+            font-size: 1.2rem;
+            color: #555;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
 
-         /* =========================
+        /* =========================
         主体内容区域布局
         ========================= */
-         .main-content {
-             display: flex;
-             gap: 20px;
-             min-height: 80vh;
-         }
+        .main-content {
+            display: flex;
+            gap: 20px;
+            min-height: 80vh;
+        }
 
-         /* =========================
+        /* =========================
         左侧控制面板样式
         ========================= */
-         .controls-section {
-             flex: 0 0 350px;
-             background: rgba(255, 255, 255, 0.92);
-             border-radius: 15px;
-             padding: 25px;
-             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-             backdrop-filter: blur(10px);
-             display: flex;
-             flex-direction: column;
-             gap: 25px;
-         }
+        .controls-section {
+            flex: 0 0 350px;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
 
-         /* =========================
+        /* =========================
         右侧白板区域样式
         ========================= */
-         .whiteboard-section {
-             flex: 1;
-             background-image: url('https://www.transparenttextures.com/patterns/notebook.png');
-             background-color: #f0f5e1;
-             border-radius: 15px;
-             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-             min-height: 800px;
-             position: relative;
-             overflow: auto;
-             padding: 20px;
-         }
+        .whiteboard-section {
+            flex: 1;
+            background-image: url('https://www.transparenttextures.com/patterns/notebook.png');
+            background-color: #f0f5e1;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            min-height: 800px;
+            position: relative;
+            overflow: auto;
+            padding: 20px;
+        }
 
-         /* =========================
+        /* =========================
         控件分组样式
         ========================= */
-         .control-group {
-             background: rgba(255, 247, 140, 0.3);
-             border-radius: 12px;
-             padding: 20px;
-             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-             border: 1px solid rgba(0, 0, 0, 0.05);
-         }
+        .control-group {
+            background: rgba(255, 247, 140, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
 
-         .control-title {
-             font-size: 1.4rem;
-             margin-bottom: 15px;
-             color: #1a2a6c;
-             display: flex;
-             align-items: center;
-             gap: 10px;
-         }
+        .control-title {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #1a2a6c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-             .control-title i {
-                 color: #ff6b6b;
-             }
+        .control-title i {
+            color: #ff6b6b;
+        }
 
-         label {
-             display: block;
-             margin-bottom: 8px;
-             font-weight: 600;
-             color: #444;
-         }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
 
-         select, textarea {
-             width: 100%;
-             padding: 12px 15px;
-             border-radius: 8px;
-             border: 1px solid #ddd;
-             background: rgba(255, 255, 255, 0.9);
-             font-size: 1rem;
-             margin-bottom: 15px;
-             transition: all 0.3s;
-         }
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
 
-             select:focus, textarea:focus {
-                 outline: none;
-                 border-color: #5d9bff;
-                 box-shadow: 0 0 0 3px rgba(93, 155, 255, 0.2);
-             }
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #5d9bff;
+            box-shadow: 0 0 0 3px rgba(93, 155, 255, 0.2);
+        }
 
-         textarea {
-             min-height: 120px;
-             resize: vertical;
-         }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
 
-         /* =========================
+        /* =========================
         功能选择网格
         ========================= */
-         .features-grid {
-             display: grid;
-             grid-template-columns: repeat(2, 1fr);
-             gap: 10px;
-         }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
 
-         .feature-item {
-             display: flex;
-             align-items: center;
-             gap: 8px;
-         }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-             .feature-item input {
-                 width: 18px;
-                 height: 18px;
-             }
+        .feature-item input {
+            width: 18px;
+            height: 18px;
+        }
 
-         /* =========================
+        /* =========================
         按钮样式
         ========================= */
-         button {
-             background: linear-gradient(135deg, #1a2a6c, #3a7bd5);
-             color: white;
-             border: none;
-             padding: 14px 25px;
-             border-radius: 8px;
-             font-size: 1.1rem;
-             font-weight: 600;
-             cursor: pointer;
-             transition: all 0.3s;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             gap: 10px;
-             width: 100%;
-             box-shadow: 0 4px 15px rgba(26, 42, 108, 0.3);
-         }
+        button {
+            background: linear-gradient(135deg, #1a2a6c, #3a7bd5);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(26, 42, 108, 0.3);
+        }
 
-             button:hover {
-                 transform: translateY(-3px);
-                 box-shadow: 0 7px 20px rgba(26, 42, 108, 0.4);
-             }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(26, 42, 108, 0.4);
+        }
 
-             button:active {
-                 transform: translateY(1px);
-             }
+        button:active {
+            transform: translateY(1px);
+        }
 
-         .add-note-btn {
-             background: linear-gradient(135deg, #ff8c00, #ff5200);
-             margin-top: 10px;
-         }
+        .add-note-btn {
+            background: linear-gradient(135deg, #ff8c00, #ff5200);
+            margin-top: 10px;
+        }
 
-         /* =========================
+        /* =========================
         切换按钮样式
         ========================= */
-         .toggle-view-btn {
-             background: linear-gradient(135deg, #28a745, #20c997);
-             color: white;
-             border: none;
-             padding: 8px 16px;
-             border-radius: 6px;
-             font-size: 0.9rem;
-             font-weight: 600;
-             cursor: pointer;
-             transition: all 0.3s;
-             margin-top: 10px;
-             width: auto;
-             display: inline-flex;
-             align-items: center;
-             gap: 6px;
-         }
+        .toggle-view-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-         .toggle-view-btn:hover {
-             transform: translateY(-2px);
-             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-         }
+        .toggle-view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
 
-         .toggle-view-btn.active {
-             background: linear-gradient(135deg, #dc3545, #c82333);
-         }
+        .toggle-view-btn.active {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
 
-         /* =========================
+        /* =========================
         Mermaid图表容器样式
         ========================= */
-         .mermaid-container {
-             background: white;
-             border: 1px solid #ddd;
-             border-radius: 8px;
-             padding: 15px;
-             margin-top: 10px;
-             overflow: auto;
-             max-height: 400px;
-             display: none;
-         }
+        .mermaid-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            overflow: auto;
+            max-height: 400px;
+            display: none;
+        }
 
-         .mermaid-container svg {
-             max-width: 100%;
-             height: auto;
-         }
+        .mermaid-container svg {
+            max-width: 100%;
+            height: auto;
+        }
 
-         .mermaid-container.show {
-             display: block;
-         }
+        .mermaid-container.show {
+            display: block;
+        }
 
-         .code-container {
-             display: block;
-         }
+        .code-container {
+            display: block;
+        }
 
-         .code-container.hide {
-             display: none;
-         }
+        .code-container.hide {
+            display: none;
+        }
 
-         /* =========================
+        /* =========================
         便签（Note）样式
         ========================= */
-         .note {
-             position: absolute;
-             background: #fff78c;
-             padding: 20px;
-             border-radius: 8px;
-             box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
-             width: 250px;
-             min-height: 150px;
-             cursor: move;
-             transition: box-shadow 0.3s;
-             z-index: 10;
-             max-height: 300px;
-             overflow: hidden;
-         }
+        .note {
+            position: absolute;
+            background: #fff78c;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+            width: 250px;
+            min-height: 150px;
+            cursor: move;
+            transition: box-shadow 0.3s;
+            z-index: 10;
+            max-height: 300px;
+            overflow: hidden;
+        }
 
-             .note:hover {
-                 box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.3);
-             }
+        .note:hover {
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.3);
+        }
 
-         .note-header {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             margin-bottom: 12px;
-             padding-bottom: 8px;
-             border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
-         }
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
+        }
 
-         .note-title {
-             font-weight: 700;
-             font-size: 1.1rem;
-             color: #1a2a6c;
-             cursor: pointer;
-             padding: 2px 5px;
-             border-radius: 4px;
-             transition: background 0.2s;
-         }
+        .note-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1a2a6c;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
 
-             .note-title:hover {
-                 background: rgba(0, 0, 0, 0.05);
-             }
+        .note-title:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
 
-             .note-title:focus {
-                 outline: none;
-                 background: rgba(255, 255, 255, 0.8);
-                 box-shadow: 0 0 0 2px rgba(93, 155, 255, 0.5);
-             }
+        .note-title:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 2px rgba(93, 155, 255, 0.5);
+        }
 
-         .note-actions {
-             display: flex;
-             gap: 8px;
-         }
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
 
-         .note-action {
-             background: rgba(0, 0, 0, 0.05);
-             width: 26px;
-             height: 26px;
-             border-radius: 50%;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             cursor: pointer;
-             transition: all 0.2s;
-         }
+        .note-action {
+            background: rgba(0, 0, 0, 0.05);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-             .note-action:hover {
-                 background: rgba(0, 0, 0, 0.1);
-             }
+        .note-action:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
 
-         .note-content {
-             line-height: 1.5;
-             font-size: 0.95rem;
-             max-height: 200px;
-             overflow-y: auto;
-             padding-right: 5px;
-         }
+        .note-content {
+            line-height: 1.5;
+            font-size: 0.95rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
 
-             .note-content::-webkit-scrollbar {
-                 width: 6px;
-             }
+        .note-content::-webkit-scrollbar {
+            width: 6px;
+        }
 
-             .note-content::-webkit-scrollbar-track {
-                 background: rgba(0, 0, 0, 0.05);
-                 border-radius: 3px;
-             }
+        .note-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 3px;
+        }
 
-             .note-content::-webkit-scrollbar-thumb {
-                 background: rgba(0, 0, 0, 0.2);
-                 border-radius: 3px;
-             }
+        .note-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
 
-         /* 结果便签样式 */
-         .result-note {
-             background: #d0f0c0;
-             width: 400px;
-             min-height: 300px;
-             max-height: 400px;
-             z-index: 20;
-             position:relative;
-         }
+        /* 结果便签样式 */
+        .result-note {
+            background: #d0f0c0;
+            width: 400px;
+            min-height: 300px;
+            max-height: 400px;
+            z-index: 20;
+            position: relative;
+        }
 
-             .result-note .note-content {
-                 font-family: 'Courier New', monospace;
-                 font-size: 0.9rem;
-                 white-space: pre-wrap;
-             }
+        .result-note .note-content {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
 
-            /* =========================
+        /* =========================
             保存样式 - 结果便签用
             ========================= */
-            .result-note .save-btn {
-                position: absolute;
-                right: 10px;
-                bottom: 10px;
-                width: 30px;
-                height: 30px;
-                background-color: #4CAF50;
-                border: none;
-                border-radius: 50%;
-                color: white;
-                font-size: 1rem;
-                cursor: pointer;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-                z-index: 10;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background-color 0.3s ease;
-            }
+        .result-note .save-btn {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
 
-                .result-note .save-btn:hover {
-                    background-color: #45a049;
-                }
-         /* =========================
-        文档保存区域样式
-        ========================= */
-        .doc-bin {
+        .result-note .save-btn:hover {
+            background-color: #45a049;
+        }
+
+
+        .bins {
             position: fixed;
             right: 30px;
-            bottom: 120px;
-            background: rgba(255, 255, 255, 0.9); 
+            bottom: 30px;
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             width: 70px;
             height: 70px;
@@ -443,15 +445,55 @@
             z-index: 100;
             transition: all 0.3s;
         }
+
+        .bins:hover {
+            transform: scale(1.1);
+            background: rgba(80, 80, 80, 0.9);
+        }
+
+        .doc-bin.hidden,
+        .trash-bin.hidden {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .doc-bin,
+        .trash-bin {
+            transition: all 0.3s ease;
+        }
+
+        /* =========================
+        文档保存区域样式
+        ========================= */
+        .doc-bin {
+            position: fixed;
+            right: 30px;
+            bottom: 120px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
         .doc-bin:hover {
             transform: scale(1.1);
             background: rgba(50, 120, 255, 0.9);
-            }
+        }
+
         .doc-count {
             position: absolute;
             top: -5px;
             right: -5px;
-            background: #ff6b6b; 
+            background: #ff6b6b;
             color: white;
             width: 25px;
             height: 25px;
@@ -462,246 +504,248 @@
             font-weight: bold;
         }
 
-         /* =========================
+        /* =========================
         垃圾桶区域样式
         ========================= */
-         .trash-bin {
-             position: fixed;
-             right: 30px;
-             bottom: 30px;
-             background: rgba(255, 255, 255, 0.9);
-             border-radius: 50%;
-             width: 70px;
-             height: 70px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-             cursor: pointer;
-             z-index: 100;
-             transition: all 0.3s;
-         }
+        .trash-bin {
+            position: fixed;
+            right: 30px;
+            bottom: 210px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
 
-             .trash-bin:hover {
-                 transform: scale(1.1);
-                 background: rgba(255, 100, 100, 0.9);
-             }
+        .trash-bin:hover {
+            transform: scale(1.1);
+            background: rgba(255, 100, 100, 0.9);
+        }
 
-         .trash-count {
-             position: absolute;
-             top: -5px;
-             right: -5px;
-             background: #ff6b6b;
-             color: white;
-             width: 25px;
-             height: 25px;
-             border-radius: 50%;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             font-weight: bold;
-         }
+        .trash-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff6b6b;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
 
-         /* =========================
+
+        /* =========================
         加载遮罩与动画
         ========================= */
-         .loading-overlay {
-             position: absolute;
-             top: 0;
-             left: 0;
-             right: 0;
-             bottom: 0;
-             background: rgba(255, 255, 255, 0.8);
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             z-index: 1000;
-             border-radius: 15px;
-             backdrop-filter: blur(3px);
-         }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 15px;
+            backdrop-filter: blur(3px);
+        }
 
-         .spinner {
-             width: 60px;
-             height: 60px;
-             border: 5px solid rgba(26, 42, 108, 0.2);
-             border-top: 5px solid #1a2a6c;
-             border-radius: 50%;
-             animation: spin 1s linear infinite;
-         }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(26, 42, 108, 0.2);
+            border-top: 5px solid #1a2a6c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
 
-         @keyframes spin {
-             0% {
-                 transform: rotate(0deg);
-             }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
 
-             100% {
-                 transform: rotate(360deg);
-             }
-         }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
 
-         /* =========================
+        /* =========================
         白板网格线
         ========================= */
-         .grid-lines {
-             position: absolute;
-             top: 0;
-             left: 0;
-             right: 0;
-             bottom: 0;
-             background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-             background-size: 20px 20px;
-             pointer-events: none;
-         }
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
 
-         /* =========================
+        /* =========================
         页脚样式
         ========================= */
-         footer {
-             text-align: center;
-             color: rgba(255, 255, 255, 0.7);
-             padding: 20px;
-             font-size: 0.9rem;
-         }
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            font-size: 0.9rem;
+        }
 
-         /* =========================
+        /* =========================
         响应式布局
         ========================= */
-         @media (max-width: 1100px) {
-             .main-content {
-                 flex-direction: column;
-             }
+        @media (max-width: 1100px) {
+            .main-content {
+                flex-direction: column;
+            }
 
-             .controls-section {
-                 flex: 1;
-             }
-         }
+            .controls-section {
+                flex: 1;
+            }
+        }
 
-         /* =========================
+        /* =========================
         便签标题编辑提示
         ========================= */
-         .title-edit-tooltip {
-             position: absolute;
-             top: -25px;
-             left: 50%;
-             transform: translateX(-50%);
-             background: rgba(0, 0, 0, 0.7);
-             color: white;
-             padding: 4px 8px;
-             border-radius: 4px;
-             font-size: 0.8rem;
-             white-space: nowrap;
-             display: none;
-         }
+        .title-edit-tooltip {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            display: none;
+        }
 
-         .note-header:hover .title-edit-tooltip {
-             display: block;
-         }
+        .note-header:hover .title-edit-tooltip {
+            display: block;
+        }
 
-         /* =========================
+        /* =========================
         垃圾桶列表样式
         ========================= */
-         .trash-list {
-             display: none;
-             position: absolute;
-             bottom: 80px;
-             right: 0;
-             min-width: 300px;
-             max-height: 400px;
-             overflow: auto;
-             background: #fff;
-             border-radius: 10px;
-             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-             z-index: 200;
-             padding: 10px 0;
-             font-size: 13px;
-             line-height: 1.5;
-         }
+        .trash-list {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            min-width: 300px;
+            max-height: 400px;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            padding: 10px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
 
-         .trash-list-item {
-             display: flex;
-             align-items: center;
-             justify-content: space-between;
-             padding: 8px 20px;
-             cursor: grab;
-             border-bottom: 1px solid #eee;
-             font-size: 13px;
-             transition: background-color 0.2s;
-         }
+        .trash-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px;
+            cursor: grab;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
 
-         .trash-list-item:hover {
-             background-color: #f8f9fa;
-         }
+        .trash-list-item:hover {
+            background-color: #f8f9fa;
+        }
 
-         .trash-list-item button {
-             margin-left: 10px;
-             font-size: 12px;
-             padding: 2px 10px;
-             transition: transform 0.2s;
-         }
+        .trash-list-item button {
+            margin-left: 10px;
+            font-size: 12px;
+            padding: 2px 10px;
+            transition: transform 0.2s;
+        }
 
-         .trash-list-item button:hover {
-             transform: scale(1.1);
-         }
+        .trash-list-item button:hover {
+            transform: scale(1.1);
+        }
 
-         .trash-header {
-             padding: 10px 20px;
-             border-bottom: 2px solid #ff6b6b;
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             background: #fff5f5;
-         }
+        .trash-header {
+            padding: 10px 20px;
+            border-bottom: 2px solid #ff6b6b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff5f5;
+        }
 
-         .trash-header button {
-             background: #ff6b6b;
-             color: white;
-             border: none;
-             padding: 4px 8px;
-             border-radius: 4px;
-             cursor: pointer;
-             font-size: 12px;
-             transition: background-color 0.2s;
-         }
+        .trash-header button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
 
-         .trash-header button:hover {
-             background: #ff5252;
-         }
+        .trash-header button:hover {
+            background: #ff5252;
+        }
 
-         .restore-btn {
-             width: 24px;
-             height: 24px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             background: #ff9800;
-             border: none;
-             border-radius: 4px;
-             cursor: pointer;
-             transition: background-color 0.2s;
-         }
+        .restore-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ff9800;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
 
-         .restore-btn:hover {
-             background: #f57c00;
-         }
+        .restore-btn:hover {
+            background: #f57c00;
+        }
 
-         .delete-btn {
-             width: 24px;
-             height: 24px;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             background: #ff6b6b;
-             border: none;
-             border-radius: 4px;
-             cursor: pointer;
-             transition: background-color 0.2s;
-         }
+        .delete-btn {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
 
-         .delete-btn:hover {
-             background: #ff5252;
-         }
+        .delete-btn:hover {
+            background: #ff5252;
+        }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <!-- 头部区域：标题与副标题 -->
@@ -777,7 +821,8 @@
                 <!-- 项目描述分组 -->
                 <div class="control-group">
                     <h2 class="control-title"><i class="fas fa-file-alt"></i> Project Description</h2>
-                    <textarea id="projectDesc">We are building a multiplayer online Tetris game that allows players to compete in real-time. The game should support 1v1 and 2v2 modes, global leaderboards, and user profiles. Players should be able to spectate ongoing games. The system must handle 5,000+ concurrent users with low latency gameplay.</textarea>
+                    <textarea
+                        id="projectDesc">We are building a multiplayer online Tetris game that allows players to compete in real-time. The game should support 1v1 and 2v2 modes, global leaderboards, and user profiles. Players should be able to spectate ongoing games. The system must handle 5,000+ concurrent users with low latency gameplay.</textarea>
                 </div>
 
                 <!-- 生成架构按钮 -->
@@ -888,18 +933,27 @@
             </div>
         </div>
 
+        <div class="bins" id="bins">
+            <i class="fas fa-eye-slash"></i>
+            <div class="bins-list"
+                style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
+            </div>
+        </div>
+
         <!-- 固定在右下角的垃圾桶，用于显示删除的便签数量 -->
         <div class="trash-bin" id="trashBin">
             <i class="fas fa-trash-alt"></i>
             <div class="trash-count">0</div>
-            <div class="trash-list" style="display:none; position:absolute; bottom:80px; right:0; min-width:200px; max-height:300px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0;">
+            <div class="trash-list"
+                style="display:none; position:absolute; bottom:80px; right:0; min-width:200px; max-height:300px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0;">
             </div>
         </div>
         <!-- 固定在左下角的文档按钮，用于显示保存的草稿列表 -->
         <div class="doc-bin" id="docBin">
             <i class="fas fa-file-alt"></i> <!-- Font Awesome 文档图标 -->
             <div class="doc-count">0</div> <!-- 可选：显示草稿数量 -->
-            <div class="doc-list" style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
+            <div class="doc-list"
+                style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
             </div>
         </div>
 
@@ -935,6 +989,7 @@
             const docBin = document.getElementById('docBin');
             const docCount = document.querySelector('.doc-count');
             const docList = docBin.querySelector('.doc-list');
+            const bins = document.getElementById('bins');
             let noteCount = 3;
             let deletedNotes = 0;
             let savedNotesArr = []; // 用于保存保存的草稿便签内容
@@ -946,6 +1001,7 @@
             let trashListVisible = false;
             let diagramHistory = [];
             let diagramNoteRef = null;
+            let binsVisible = true;
 
             // 添加新便签
             addNoteBtn.addEventListener('click', function () {
@@ -999,7 +1055,7 @@
                 const notes = Array.from(document.querySelectorAll(".note"))
                     .map(note => note.innerText.trim())
                     .filter(text => text !== "");
-                
+
                 // 检查 resultNote 是否还在白板上，不在则重新创建
                 let resultNote = document.getElementById('resultNote');
                 if (!resultNote || !whiteboard.contains(resultNote)) {
@@ -1035,7 +1091,7 @@
                             appType: appType,
                             features: features,
                             userCount: userCount,
-                            notes:notes
+                            notes: notes
                         })
                     });
                     const data = await response.json();
@@ -1053,16 +1109,16 @@
 
             // 修改生成 diagram 逻辑
 
-            generateDiagramBtn.addEventListener('click',async function(){
+            generateDiagramBtn.addEventListener('click', async function () {
                 console.log('Generate Diagram button clicked!'); // 调试信息
-                
+
                 // 检查是否已经填写了必要的表单信息
                 const appType = document.getElementById('appType').value;
                 const userCount = document.getElementById('userCount').value;
                 const projectDesc = document.getElementById('projectDesc').value;
-                
+
                 console.log('Form values:', { appType, userCount, projectDesc }); // 调试信息
-                
+
                 if (!appType || !userCount || !projectDesc.trim()) {
                     alert('请先填写应用类型、用户数量和项目描述，然后再生成图表');
                     return;
@@ -1075,7 +1131,7 @@
                         features.push(document.querySelector('label[for="feature' + i + '"]').textContent);
                     }
                 }
-                
+
                 console.log('Selected features:', features); // 调试信息
 
                 // 显示加载动画
@@ -1084,14 +1140,14 @@
                 overlay.innerHTML = '<div class="spinner"></div>';
                 whiteboard.appendChild(overlay);
 
-                try{
+                try {
                     console.log('Sending request to backend...'); // 调试信息
-                    const response = await fetch('http://127.0.0.1:8000/generate_diagram',{
-                        method:'POST',
-                        headers:{
-                            'Content-Type':'application/json'
+                    const response = await fetch('http://127.0.0.1:8000/generate_diagram', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
                         },
-                        body:JSON.stringify({
+                        body: JSON.stringify({
                             prompt: projectDesc,
                             appType: appType,
                             features: features,
@@ -1107,8 +1163,8 @@
 
                     // 移除之前的 diagram 便利贴
                     if (diagramNoteRef && whiteboard.contains(diagramNoteRef)) {
-                      whiteboard.removeChild(diagramNoteRef);
-                      diagramNoteRef = null;
+                        whiteboard.removeChild(diagramNoteRef);
+                        diagramNoteRef = null;
                     }
 
                     // 创建一个新的Note显示图示文本，包含切换按钮
@@ -1143,13 +1199,13 @@
                     whiteboard.appendChild(diagramNote);
                     addNoteEvents(diagramNote);
                     diagramNoteRef = diagramNote;
-                    
+
                     // 添加切换按钮事件
                     const toggleBtn = diagramNote.querySelector('#toggleViewBtn');
                     const codeContainer = diagramNote.querySelector('.code-container');
                     const mermaidContainer = diagramNote.querySelector('#mermaidContainer');
-                    
-                    toggleBtn.addEventListener('click', function() {
+
+                    toggleBtn.addEventListener('click', function () {
                         if (mermaidContainer.classList.contains('show')) {
                             // 切换到代码视图
                             mermaidContainer.classList.remove('show');
@@ -1162,14 +1218,14 @@
                             mermaidContainer.classList.add('show');
                             toggleBtn.innerHTML = '<i class="fas fa-code"></i> View Code';
                             toggleBtn.classList.add('active');
-                            
+
                             // 渲染Mermaid图表
                             if (!mermaidContainer.querySelector('.mermaid')) {
                                 const mermaidDiv = document.createElement('div');
                                 mermaidDiv.className = 'mermaid';
                                 mermaidDiv.textContent = data.diagram;
                                 mermaidContainer.appendChild(mermaidDiv);
-                                
+
                                 // 初始化Mermaid
                                 mermaid.initialize({
                                     startOnLoad: true,
@@ -1183,7 +1239,7 @@
                             }
                         }
                     });
-                    
+
                     // 保存到历史
                     diagramHistory.push({ content: data.diagram });
 
@@ -1197,7 +1253,7 @@
                             }
                         }
                     }
-                  }catch(err){
+                } catch (err) {
                     console.error('Error in generateDiagramBtn:', err); // 调试信息
                     whiteboard.removeChild(overlay);
                     alert('流程图生成服务连接失败，请确认后端服务已启动并允许本地访问。');
@@ -1238,7 +1294,7 @@
                 note.addEventListener('mousedown', startDrag);
                 // 删除按钮支持原生拖拽到垃圾桶
                 deleteBtn.setAttribute('draggable', 'true');
-                deleteBtn.addEventListener('dragstart', function(e) {
+                deleteBtn.addEventListener('dragstart', function (e) {
                     e.stopPropagation();
                     e.dataTransfer.setData('text/plain', 'delete-note');
                     // 记录当前拖拽的 note
@@ -1254,7 +1310,7 @@
                     document.body.appendChild(dragPreview);
                     e.dataTransfer.setDragImage(dragPreview, 100, 30);
                 });
-                deleteBtn.addEventListener('dragend', function() {
+                deleteBtn.addEventListener('dragend', function () {
                     if (dragPreview && dragPreview.parentNode) {
                         dragPreview.parentNode.removeChild(dragPreview);
                         dragPreview = null;
@@ -1309,7 +1365,7 @@
                 content.addEventListener('blur', function () {
                     this.contentEditable = false;
                 });
-            
+
                 //如果内容为空，由llm提供灵感
                 if (content.innerText.trim() === "") {
                     content.innerText = "(Generating suggestion from AI...)";
@@ -1376,6 +1432,28 @@
                 document.removeEventListener('mouseup', stopDrag);
             }
 
+            // Debugging: Confirm elements exist
+            console.log('Elements:', { bins, trashBin, docBin });
+
+            bins.addEventListener('click', function () {
+                const binsIcon = this.querySelector('i');
+                binsVisible = !binsVisible;
+
+                if (binsVisible) {
+                    trashBin.classList.remove('hidden');
+                    docBin.classList.remove('hidden');
+                } else {
+                    trashBin.classList.add('hidden');
+                    docBin.classList.add('hidden');
+                }
+
+                // Toggle icon
+                binsIcon.classList.toggle('fa-eye');
+                binsIcon.classList.toggle('fa-eye-slash');
+            });
+
+
+
             // 垃圾桶点击事件
             trashBin.addEventListener('click', function () {
                 // 不再弹窗
@@ -1423,14 +1501,14 @@
             });
 
             // 阻止点击 list 区域冒泡，避免误关闭
-            trashList.addEventListener('click', function(e) {
+            trashList.addEventListener('click', function (e) {
                 e.stopPropagation();
             });
 
             // 更新回收箱列表
             function updateTrashList() {
                 trashList.innerHTML = '';
-                
+
                 // 重新添加头部和清空按钮
                 const header = document.createElement('div');
                 header.className = 'trash-header';
@@ -1439,10 +1517,10 @@
                     <button id="clearTrashBtn">Clear All</button>
                 `;
                 trashList.appendChild(header);
-                
+
                 // 添加清空按钮事件
                 const clearBtn = header.querySelector('#clearTrashBtn');
-                clearBtn.addEventListener('click', function(e) {
+                clearBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
                     if (deletedNotesArr.length > 0) {
                         if (confirm('Are you sure you want to permanently delete all items in the trash?')) {
@@ -1455,7 +1533,7 @@
                         }
                     }
                 });
-                
+
                 if (deletedNotesArr.length === 0) {
                     // 空状态提示
                     const emptyMsg = document.createElement('div');
@@ -1492,7 +1570,7 @@
                         </div>
                     `;
                     // 拖拽恢复
-                    li.addEventListener('dragstart', function(e) {
+                    li.addEventListener('dragstart', function (e) {
                         e.dataTransfer.setData('text/plain', idx);
                         // 拖拽预览
                         dragPreview = document.createElement('div');
@@ -1504,19 +1582,19 @@
                         document.body.appendChild(dragPreview);
                         e.dataTransfer.setDragImage(dragPreview, 100, 30);
                     });
-                    li.addEventListener('dragend', function() {
+                    li.addEventListener('dragend', function () {
                         if (dragPreview && dragPreview.parentNode) {
                             dragPreview.parentNode.removeChild(dragPreview);
                             dragPreview = null;
                         }
                     });
                     // 点击恢复
-                    li.querySelector('.restore-btn').addEventListener('click', function(e) {
+                    li.querySelector('.restore-btn').addEventListener('click', function (e) {
                         e.stopPropagation();
                         restoreNote(idx, null, null);
                     });
                     // 点击永久删除
-                    li.querySelector('.delete-btn').addEventListener('click', function(e) {
+                    li.querySelector('.delete-btn').addEventListener('click', function (e) {
                         e.stopPropagation();
                         const idxToDelete = parseInt(this.dataset.idx);
                         if (confirm('Are you sure you want to permanently delete this note?')) {
@@ -1584,14 +1662,14 @@
             });
 
             // 垃圾桶支持拖拽删除
-            trashBin.addEventListener('dragover', function(e) {
+            trashBin.addEventListener('dragover', function (e) {
                 // 允许拖入
                 if (currentNote) {
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
                 }
             });
-            trashBin.addEventListener('drop', function(e) {
+            trashBin.addEventListener('drop', function (e) {
                 if (currentNote && whiteboard.contains(currentNote)) {
                     e.preventDefault();
                     // 删除动画
@@ -1618,4 +1696,5 @@
         });
     </script>
 </body>
+
 </html>
