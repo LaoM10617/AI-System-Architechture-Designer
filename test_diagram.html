@@ -743,6 +743,40 @@
         .delete-btn:hover {
             background: #ff5252;
         }
+
+        /* 添加右下角收藏按钮样式 */
+        .favorite-btn-in-footer {
+            position: absolute;
+            right: 18px;
+            bottom: 10px;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #ffd600, #ffb300);
+            border-radius: 50%;
+            box-shadow: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+            padding: 0;
+        }
+        .favorite-btn-in-footer:hover {
+            background: linear-gradient(135deg, #ffe082, #ffd600);
+            box-shadow: none;
+        }
+        .favorite-btn-in-footer i {
+            color: #fff;
+            font-size: 1.1rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -928,7 +962,7 @@
                         <strong>Multiplayer Tetris System Architecture</strong>
                         ...
                     </div>
-                    <button class="save-btn">💾</button> <!-- 保存按钮 -->
+                    <button class="favorite-btn-in-footer" title="收藏"><i class="far fa-star"></i></button>
                 </div>
             </div>
         </div>
@@ -955,6 +989,14 @@
             <div class="doc-list"
                 style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
             </div>
+        </div>
+
+        <!-- 1. 在文档按钮（id=docBin）后添加弹窗HTML -->
+        <div class="doc-popup" id="docPopup" style="display:none; position:absolute; bottom:80px; right:0; min-width:220px; max-width:220px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0; font-size:13px; line-height:1.5;">
+            <div class="doc-header" style="padding:10px 20px; border-bottom:2px solid #2196f3; display:flex; justify-content:space-between; align-items:center; background:#e3f2fd;">
+                <span style="font-weight:bold; color:#222; text-align:center; width:100%;">Favorites</span>
+            </div>
+            <div id="favoritesList" style="padding:8px 0;"></div>
         </div>
 
         <!-- 页脚信息 -->
@@ -1002,6 +1044,7 @@
             let diagramHistory = [];
             let diagramNoteRef = null;
             let binsVisible = true;
+            let favoritesArr = [];
 
             // 添加新便签
             addNoteBtn.addEventListener('click', function () {
@@ -1142,6 +1185,11 @@
 
                 try {
                     console.log('Sending request to backend...'); // 调试信息
+                    const notes = [];
+                    // 可选：收集便签内容，和架构生成保持一致
+                    // const notes = Array.from(document.querySelectorAll(".note"))
+                    //     .map(note => note.innerText.trim())
+                    //     .filter(text => text !== "");
                     const response = await fetch('http://127.0.0.1:8000/generate_diagram', {
                         method: 'POST',
                         headers: {
@@ -1151,7 +1199,8 @@
                             prompt: projectDesc,
                             appType: appType,
                             features: features,
-                            userCount: userCount
+                            userCount: userCount,
+                            notes: notes // 新增notes字段，后端必需
                         })
                     });
 
@@ -1194,6 +1243,8 @@
                           <button class="toggle-view-btn" id="toggleViewBtn">
                               <i class="fas fa-eye"></i> View Diagram
                           </button>
+                          <button class="favorite-btn-in-footer" title="收藏"><i class="far fa-star"></i></button>
+                          <div id="diagramActions" style="margin-top:10px; text-align:center;"></div>
                       </div>
                     `;
                     whiteboard.appendChild(diagramNote);
@@ -1236,6 +1287,48 @@
                                     }
                                 });
                                 mermaid.init(undefined, mermaidDiv);
+
+                                // 放大功能
+                                mermaidDiv.addEventListener('click', function() {
+                                    const svg = mermaidDiv.querySelector('svg');
+                                    if (!svg) return;
+                                    const overlay = document.createElement('div');
+                                    overlay.style.position = 'fixed';
+                                    overlay.style.top = 0;
+                                    overlay.style.left = 0;
+                                    overlay.style.width = '100vw';
+                                    overlay.style.height = '100vh';
+                                    overlay.style.background = 'rgba(0,0,0,0.7)';
+                                    overlay.style.zIndex = 9999;
+                                    overlay.style.display = 'flex';
+                                    overlay.style.alignItems = 'center';
+                                    overlay.style.justifyContent = 'center';
+                                    overlay.style.cursor = 'zoom-out';
+                                    // 克隆svg
+                                    const bigSvg = svg.cloneNode(true);
+                                    bigSvg.style.background = '#fff';
+                                    bigSvg.style.maxWidth = '90vw';
+                                    bigSvg.style.maxHeight = '90vh';
+                                    bigSvg.style.boxShadow = '0 8px 40px rgba(0,0,0,0.5)';
+                                    overlay.appendChild(bigSvg);
+                                    overlay.addEventListener('click', function() {
+                                        document.body.removeChild(overlay);
+                                    });
+                                    document.body.appendChild(overlay);
+                                });
+
+                                // 下载功能
+                                setTimeout(() => {
+                                    const svg = mermaidDiv.querySelector('svg');
+                                    if (svg) {
+                                        const serializer = new XMLSerializer();
+                                        const svgStr = serializer.serializeToString(svg);
+                                        const blob = new Blob([svgStr], {type: 'image/svg+xml'});
+                                        const url = URL.createObjectURL(blob);
+                                        const actionsDiv = diagramNote.querySelector('#diagramActions');
+                                        actionsDiv.innerHTML = `<a href="${url}" download="diagram.svg" style="display:inline-block;padding:6px 16px;background:#2196f3;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">download SVG</a>`;
+                                    }
+                                }, 500);
                             }
                         }
                     });
@@ -1624,8 +1717,9 @@
                 // 定位
                 if (x !== null && y !== null) {
                     const whiteboardRect = whiteboard.getBoundingClientRect();
-                    restoredNote.style.left = (x - whiteboardRect.left - 50) + 'px';
-                    restoredNote.style.top = (y - whiteboardRect.top - 20) + 'px';
+                    // 直接让便签左上角对齐鼠标指针
+                    restoredNote.style.left = (x - whiteboardRect.left) + 'px';
+                    restoredNote.style.top = (y - whiteboardRect.top) + 'px';
                 } else {
                     restoredNote.style.left = item.left;
                     restoredNote.style.top = item.top;
@@ -1693,6 +1787,70 @@
                     }, 200);
                 }
             });
+
+            // 在DOMContentLoaded事件内添加事件委托，监听白板区域所有.favorite-btn-in-footer点击
+            whiteboard.addEventListener('click', function(e) {
+                const btn = e.target.closest('.favorite-btn-in-footer');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    const note = btn.closest('.result-note');
+                    // 获取类型和标题
+                    let type = 'architecture';
+                    if (note && note.querySelector('.note-title')) {
+                        const titleText = note.querySelector('.note-title').textContent.trim();
+                        if (/diagram/i.test(titleText)) type = 'diagram';
+                        const title = titleText;
+                        if (btn.classList.toggle('favorited')) {
+                            icon.classList.remove('far');
+                            icon.classList.add('fas');
+                            // 添加到收藏
+                            favoritesArr.push({ type, title });
+                        } else {
+                            icon.classList.remove('fas');
+                            icon.classList.add('far');
+                            // 从收藏移除
+                            const idx = favoritesArr.findIndex(item => item.type === type && item.title === title);
+                            if (idx !== -1) favoritesArr.splice(idx, 1);
+                        }
+                        updateFavoritesList();
+                    }
+                }
+            });
+
+            // 2. 在DOMContentLoaded事件内添加弹窗显示/隐藏逻辑
+            const docPopup = document.getElementById('docPopup');
+            docBin.addEventListener('click', function(e) {
+                e.stopPropagation();
+                docPopup.style.display = docPopup.style.display === 'block' ? 'none' : 'block';
+                // 定位弹窗到文档按钮上方
+                const rect = docBin.getBoundingClientRect();
+                docPopup.style.position = 'fixed';
+                docPopup.style.right = '0px';
+                docPopup.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+                updateFavoritesList();
+            });
+
+            function updateFavoritesList() {
+                const list = document.getElementById('favoritesList');
+                list.innerHTML = '';
+                // 同步红点数字
+                const docCount = document.querySelector('.doc-count');
+                docCount.textContent = favoritesArr.length;
+                if (favoritesArr.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; color:#888; font-size:13px; padding:8px 0;">No favorites yet.</div>';
+                    return;
+                }
+                favoritesArr.forEach(item => {
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    div.style.justifyContent = 'space-between';
+                    div.style.padding = '6px 18px';
+                    div.style.fontSize = '13px';
+                    div.innerHTML = `<span style="color:#2196f3;font-weight:bold;margin-right:6px;">[${item.type}]</span><span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">${item.title}</span>`;
+                    list.appendChild(div);
+                });
+            }
         });
     </script>
 </body>
