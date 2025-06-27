@@ -1309,7 +1309,7 @@
                 content.addEventListener('blur', function () {
                     this.contentEditable = false;
                 });
-            }
+            
                 //如果内容为空，由llm提供灵感
                 if (content.innerText.trim() === "") {
                     content.innerText = "(Generating suggestion from AI...)";
@@ -1328,6 +1328,7 @@
                             noteElement.querySelector(".note-content").innerText = data.suggestion;
                         });
                 }
+            }
             // 拖拽开始
             function startDrag(e) {
                 // 删除按钮、标题或内容正在编辑时不触发拖拽
