@@ -303,10 +303,15 @@
             width: 250px;
             min-height: 150px;
             cursor: move;
-            transition: box-shadow 0.3s;
             z-index: 10;
             max-height: 300px;
             overflow: hidden;
+        }
+
+        /* 删除过渡动画 */
+        .note.deleting {
+            transform: scale(0.7) rotate(-5deg);
+            opacity: 0;
         }
 
         .note:hover {
@@ -392,7 +397,6 @@
             min-height: 300px;
             max-height: 400px;
             z-index: 20;
-            position: relative;
         }
 
         .result-note .note-content {
@@ -1361,16 +1365,15 @@
 
             // 便签事件绑定函数
             function addNoteEvents(note) {
+                // 避免重复绑定事件
+                if (note.dataset.eventsBound === 'true') return;
+                note.dataset.eventsBound = 'true';
                 // 删除按钮事件和拖拽删除
                 const deleteBtn = note.querySelector('.note-action');
                 // 删除按钮点击删除
                 deleteBtn.addEventListener('click', function (e) {
                     e.stopPropagation();
-                    note.style.transform = 'scale(0.9)';
-                    note.style.opacity = '0.5';
-                    setTimeout(() => {
                         deletedNotesArr.push({
-                            html: note.outerHTML,
                             top: note.style.top,
                             left: note.style.left
                         });
@@ -1381,6 +1384,7 @@
                             updateTrashList();
                         }
                     }, 300);
+                    });
                 });
                 // 拖拽功能（自定义拖动，便签本身不设置draggable）
                 note.removeAttribute('draggable');
@@ -1467,7 +1471,6 @@
                         .filter(text => text.length > 0)
                         .join("\n\n");
 
-                    fetch("/api/note_hint", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ existingNotes, title })
@@ -1714,6 +1717,12 @@
                 const temp = document.createElement('div');
                 temp.innerHTML = item.html;
                 const restoredNote = temp.firstElementChild;
+                // 移除删除动画类与已存在的事件绑定标记，重置样式
+                restoredNote.classList.remove('deleting');
+                restoredNote.style.transform = '';
+                restoredNote.style.opacity = '';
+                restoredNote.style.pointerEvents = '';
+                restoredNote.removeAttribute('data-events-bound');
                 // 定位
                 if (x !== null && y !== null) {
                     const whiteboardRect = whiteboard.getBoundingClientRect();
@@ -1766,25 +1775,13 @@
             trashBin.addEventListener('drop', function (e) {
                 if (currentNote && whiteboard.contains(currentNote)) {
                     e.preventDefault();
-                    // 删除动画
-                    const noteToDelete = currentNote;
-                    currentNote = null; // 立即清空，防止多次触发
-                    noteToDelete.style.transform = 'scale(0.9)';
-                    noteToDelete.style.opacity = '0.5';
-                    setTimeout(() => {
                         // 再次判断节点有效性
-                        if (noteToDelete && whiteboard.contains(noteToDelete)) {
                             deletedNotesArr.push({
-                                html: noteToDelete.outerHTML,
-                                top: noteToDelete.style.top,
-                                left: noteToDelete.style.left
                             });
-                            whiteboard.removeChild(noteToDelete);
                             deletedNotes++;
                             trashCount.textContent = deletedNotes;
                             updateTrashList();
                         }
-                    }, 200);
                 }
             });
 
@@ -1850,6 +1847,14 @@
                     div.innerHTML = `<span style="color:#2196f3;font-weight:bold;margin-right:6px;">[${item.type}]</span><span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;">${item.title}</span>`;
                     list.appendChild(div);
                 });
+            }
+
+            // 公共删除动画函数
+            function animateDelete(targetNote, onFinish) {
+                if (!targetNote) return;
+                targetNote.classList.add('deleting');
+                targetNote.style.pointerEvents = 'none';
+                setTimeout(onFinish, 260); // 与CSS过渡时间保持一致
             }
         });
     </script>

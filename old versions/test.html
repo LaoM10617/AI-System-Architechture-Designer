@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI System Architecture Designer | Online Tetris</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+      color: #333;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #ff8c00, #ff0080, #00c9ff);
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      background: linear-gradient(90deg, #1a2a6c, #b21f1f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: #555;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .main-content {
+      display: flex;
+      gap: 20px;
+      min-height: 80vh;
+    }
+
+    .controls-section {
+      flex: 0 0 350px;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .whiteboard-section {
+      flex: 1;
+      background-image: url('https://www.transparenttextures.com/patterns/notebook.png');
+      background-color: #f0f5e1;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      min-height: 800px;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .control-group {
+      background: rgba(255, 247, 140, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .control-title {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: #1a2a6c;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-title i {
+      color: #ff6b6b;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    select, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: #5d9bff;
+      box-shadow: 0 0 0 3px rgba(93, 155, 255, 0.2);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-item input {
+      width: 18px;
+      height: 18px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #1a2a6c, #3a7bd5);
+      color: white;
+      border: none;
+      padding: 14px 25px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(26, 42, 108, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 20px rgba(26, 42, 108, 0.4);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .add-note-btn {
+      background: linear-gradient(135deg, #ff8c00, #ff5200);
+      margin-top: 10px;
+    }
+
+    .generate-diagram-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      margin-top: 10px;
+    }
+
+    .note {
+      position: absolute;
+      background: #fff78c;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      min-width: 200px;
+      max-width: 300px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      cursor: move;
+      transition: all 0.3s;
+      z-index: 10;
+    }
+
+    .note:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .note-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .note-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #333;
+      cursor: text;
+      padding: 2px 5px;
+      border-radius: 3px;
+      transition: background 0.2s;
+    }
+
+    .note-title:hover {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .note-title:focus {
+      background: rgba(255, 255, 255, 0.8);
+      outline: none;
+    }
+
+    .note-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .note-action {
+      width: 20px;
+      height: 20px;
+      background: #ff6b6b;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .note-action:hover {
+      background: #ff5252;
+      transform: scale(1.1);
+    }
+
+    .note-content {
+      color: #555;
+      line-height: 1.4;
+      min-height: 60px;
+      padding: 5px;
+      border-radius: 3px;
+      transition: background 0.2s;
+    }
+
+    .note-content:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .note-content:focus {
+      background: rgba(255, 255, 255, 0.8);
+      outline: none;
+    }
+
+    .title-edit-tooltip {
+      position: absolute;
+      top: -25px;
+      left: 0;
+      background: #333;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .note-header:hover .title-edit-tooltip {
+      opacity: 1;
+    }
+
+    .trash-bin {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #ff6b6b, #ff5252);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .trash-bin:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+    }
+
+    .trash-count {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #333;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      border-radius: 15px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .result-note {
+      background: #d0f0c0;
+      border: 2px solid #28a745;
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      display: none;
+    }
+
+    .diagram-container {
+      background: white;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      overflow: auto;
+      max-height: 400px;
+    }
+
+    .diagram-container svg {
+      max-width: 100%;
+      height: auto;
+      }
+
+    .error-message {
+      background: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+      border: 1px solid #ffcdd2;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    footer p {
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1><i class="fas fa-brain"></i> AI System Architecture Designer</h1>
+      <p class="subtitle">Create, visualize and optimize your system designs with AI-powered architecture generation</p>
+    </header>
+
+    <div class="main-content">
+      <div class="controls-section">
+        <div class="control-group">
+          <div class="control-title">
+            <i class="fas fa-cog"></i>
+            Application Details
+          </div>
+          <label for="appType">Application Type:</label>
+          <select id="appType">
+            <option value="">Select application type...</option>
+            <option value="Web Application">Web Application</option>
+            <option value="Mobile Application">Mobile Application</option>
+            <option value="Desktop Application">Desktop Application</option>
+            <option value="API Service">API Service</option>
+            <option value="Microservices">Microservices</option>
+            <option value="Data Pipeline">Data Pipeline</option>
+            <option value="IoT System">IoT System</option>
+            <option value="AI/ML System">AI/ML System</option>
+          </select>
+
+          <label for="userCount">Expected User Count:</label>
+          <select id="userCount">
+            <option value="">Select user count...</option>
+            <option value="1-100">1-100 users</option>
+            <option value="100-1K">100-1K users</option>
+            <option value="1K-10K">1K-10K users</option>
+            <option value="10K-100K">10K-100K users</option>
+            <option value="100K+">100K+ users</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">
+            <i class="fas fa-list"></i>
+            Core Features
+          </div>
+          <div class="features-grid">
+            <div class="feature-item">
+              <input type="checkbox" id="auth" value="User Authentication">
+              <label for="auth">Authentication</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="database" value="Database">
+              <label for="database">Database</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="api" value="API">
+              <label for="api">API</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="cache" value="Caching">
+              <label for="cache">Caching</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="search" value="Search">
+              <label for="search">Search</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="notification" value="Notifications">
+              <label for="notification">Notifications</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="file" value="File Upload">
+              <label for="file">File Upload</label>
+            </div>
+            <div class="feature-item">
+              <input type="checkbox" id="analytics" value="Analytics">
+              <label for="analytics">Analytics</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-title">
+            <i class="fas fa-edit"></i>
+            Project Description
+          </div>
+          <textarea id="projectDescription" placeholder="Describe your project requirements, goals, and any specific technical constraints..."></textarea>
+        </div>
+
+        <button id="generateBtn" class="generate-diagram-btn">
+          <i class="fas fa-magic"></i>
+          Generate Architecture
+        </button>
+
+        <button id="generateDiagramBtn" class="generate-diagram-btn">
+          <i class="fas fa-project-diagram"></i>
+          Generate Diagram
+        </button>
+
+        <button id="addNoteBtn" class="add-note-btn">
+          <i class="fas fa-plus"></i>
+          Add Sticky Note
+        </button>
+      </div>
+
+      <div class="whiteboard-section" id="whiteboard">
+        <div class="note" style="top: 50px; left: 50px;">
+          <div class="note-header">
+            <div>
+              <div class="title-edit-tooltip">Double-click to edit title</div>
+              <div class="note-title" tabindex="0">Frontend</div>
+            </div>
+            <div class="note-actions">
+              <div class="note-action"><i class="fas fa-times"></i></div>
+            </div>
+          </div>
+          <div class="note-content" contenteditable="true">
+            React/Vue.js application
+            User interface components
+            State management
+          </div>
+        </div>
+
+        <div class="note" style="top: 50px; left: 300px;">
+          <div class="note-header">
+            <div>
+              <div class="title-edit-tooltip">Double-click to edit title</div>
+              <div class="note-title" tabindex="0">Backend API</div>
+            </div>
+            <div class="note-actions">
+              <div class="note-action"><i class="fas fa-times"></i></div>
+            </div>
+          </div>
+          <div class="note-content" contenteditable="true">
+            RESTful API endpoints
+            Business logic
+            Data validation
+          </div>
+        </div>
+
+        <div class="note" style="top: 200px; left: 50px;">
+          <div class="note-header">
+            <div>
+              <div class="title-edit-tooltip">Double-click to edit title</div>
+              <div class="note-title" tabindex="0">Database</div>
+            </div>
+            <div class="note-actions">
+              <div class="note-action"><i class="fas fa-times"></i></div>
+            </div>
+          </div>
+          <div class="note-content" contenteditable="true">
+            PostgreSQL/MySQL
+            Data persistence
+            Query optimization
+          </div>
+        </div>
+
+        <div class="note result-note" id="resultNote">
+          <div class="note-header">
+            <div>
+              <div class="title-edit-tooltip">Double-click to edit title</div>
+              <div class="note-title" tabindex="0">AI Architecture Proposal</div>
+            </div>
+            <div class="note-actions">
+              <div class="note-action"><i class="fas fa-times"></i></div>
+            </div>
+          </div>
+          <div class="note-content" contenteditable="true">
+            Based on your requirements, here's a recommended architecture...
+          </div>
+          <div class="diagram-container" id="diagramContainer" style="display: none;">
+            <!-- Mermaid diagram will be rendered here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="trash-bin" id="trashBin">
+      <i class="fas fa-trash"></i>
+      <div class="trash-count">0</div>
+    </div>
+
+    <footer>
+      <p>AI System Architecture Designer &copy; 2025 | Create, visualize and optimize your system designs</p>
+    </footer>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const whiteboard = document.getElementById('whiteboard');
+      const addNoteBtn = document.getElementById('addNoteBtn');
+      const generateBtn = document.getElementById('generateBtn');
+      const generateDiagramBtn = document.getElementById('generateDiagramBtn');
+      const trashBin = document.getElementById('trashBin');
+      const resultNote = document.getElementById('resultNote');
+      const diagramContainer = document.getElementById('diagramContainer');
+      const trashCount = document.querySelector('.trash-count');
+      let noteCount = 3;
+      let deletedNotes = 0;
+      let isDragging = false;
+      let currentNote = null;
+      let offsetX, offsetY;
+
+      addNoteBtn.addEventListener('click', function() {
+        noteCount++;
+        const x = 100 + (Math.random() * 200);
+        const y = 100 + (Math.random() * 200);
+
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.style.top = `${y}px`;
+        note.style.left = `${x}px`;
+        note.innerHTML = `
+          <div class="note-header">
+            <div>
+              <div class="title-edit-tooltip">Double-click to edit title</div>
+              <div class="note-title" tabindex="0">Note #${noteCount}</div>
+            </div>
+            <div class="note-actions">
+              <div class="note-action"><i class="fas fa-times"></i></div>
+            </div>
+          </div>
+          <div class="note-content" contenteditable="true">
+            Double-click to edit this note...
+          </div>
+        `;
+
+        whiteboard.appendChild(note);
+        addNoteEvents(note);
+      });
+
+      generateBtn.addEventListener('click', async function() {
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner"></div>';
+        whiteboard.appendChild(overlay);
+
+        try {
+          const appType = document.getElementById('appType').value;
+          const userCount = document.getElementById('userCount').value;
+          const projectDescription = document.getElementById('projectDescription').value;
+          
+          const selectedFeatures = [];
+          document.querySelectorAll('.feature-item input:checked').forEach(checkbox => {
+            selectedFeatures.push(checkbox.value);
+          });
+
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: projectDescription,
+              appType: appType,
+              features: selectedFeatures,
+              userCount: userCount
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate architecture');
+          }
+
+          const data = await response.json();
+          
+          const resultContent = resultNote.querySelector('.note-content');
+          resultContent.textContent = data.result;
+          
+          whiteboard.removeChild(overlay);
+          resultNote.style.display = 'block';
+          resultNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          addNoteEvents(resultNote);
+
+        } catch (error) {
+          console.error('Error generating architecture:', error);
+          whiteboard.removeChild(overlay);
+          alert('生成架构时出错: ' + error.message);
+        }
+      });
+
+      generateDiagramBtn.addEventListener('click', async function() {
+        const appType = document.getElementById('appType').value;
+        const userCount = document.getElementById('userCount').value;
+        const projectDescription = document.getElementById('projectDescription').value;
+        
+        if (!appType || !userCount || !projectDescription.trim()) {
+          alert('请先填写应用类型、用户数量和项目描述，然后再生成图表');
+          return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner"></div>';
+        whiteboard.appendChild(overlay);
+
+        try {
+          const selectedFeatures = [];
+          document.querySelectorAll('.feature-item input:checked').forEach(checkbox => {
+            selectedFeatures.push(checkbox.value);
+          });
+
+          const response = await fetch('/generate_diagram', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt: projectDescription,
+              appType: appType,
+              features: selectedFeatures,
+              userCount: userCount
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to generate diagram');
+          }
+
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          if (data.architecture) {
+            const resultContent = resultNote.querySelector('.note-content');
+            resultContent.textContent = data.architecture;
+          }
+
+          diagramContainer.innerHTML = '';
+          diagramContainer.style.display = 'block';
+          
+          const diagramDiv = document.createElement('div');
+          diagramDiv.className = 'mermaid';
+          diagramDiv.textContent = data.diagram;
+          diagramContainer.appendChild(diagramDiv);
+
+          mermaid.init(undefined, diagramDiv);
+
+          whiteboard.removeChild(overlay);
+          resultNote.style.display = 'block';
+          resultNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        } catch (error) {
+          console.error('Error generating diagram:', error);
+          whiteboard.removeChild(overlay);
+          
+          diagramContainer.innerHTML = `<div class="error-message">生成图表时出错: ${error.message}</div>`;
+          diagramContainer.style.display = 'block';
+        }
+      });
+
+      document.querySelectorAll('.note').forEach(note => {
+        addNoteEvents(note);
+      });
+
+      function addNoteEvents(note) {
+        const deleteBtn = note.querySelector('.note-action');
+        deleteBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          note.style.transform = 'scale(0.9)';
+          note.style.opacity = '0.5';
+
+          setTimeout(() => {
+            whiteboard.removeChild(note);
+            deletedNotes++;
+            trashCount.textContent = deletedNotes;
+          }, 300);
+        });
+
+        const title = note.querySelector('.note-title');
+        title.addEventListener('dblclick', function(e) {
+          e.stopPropagation();
+          this.contentEditable = true;
+          this.focus();
+
+          const range = document.createRange();
+          range.selectNodeContents(this);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        });
+
+        title.addEventListener('blur', function() {
+          this.contentEditable = false;
+
+          if (this.textContent.trim() === '') {
+            this.textContent = this.dataset.original || 'Untitled Note';
+          }
+        });
+
+        if (!title.dataset.original) {
+          title.dataset.original = title.textContent;
+        }
+
+        title.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.blur();
+          }
+        });
+
+        const header = note.querySelector('.note-header');
+        header.style.cursor = 'move';
+
+        header.addEventListener('mousedown', startDrag);
+
+        const content = note.querySelector('.note-content');
+        content.addEventListener('dblclick', function() {
+          this.contentEditable = true;
+          this.focus();
+        });
+
+        content.addEventListener('blur', function() {
+          this.contentEditable = false;
+        });
+      }
+
+      function startDrag(e) {
+        if (e.target.classList.contains('note-action') ||
+            e.target.classList.contains('note-title') && e.target.isContentEditable) {
+          return;
+        }
+
+        isDragging = true;
+        currentNote = this.parentElement;
+        offsetX = e.clientX - currentNote.getBoundingClientRect().left;
+        offsetY = e.clientY - currentNote.getBoundingClientRect().top;
+
+        currentNote.style.zIndex = '100';
+        document.addEventListener('mousemove', dragNote);
+        document.addEventListener('mouseup', stopDrag);
+      }
+
+      function dragNote(e) {
+        if (!isDragging) return;
+
+        const whiteboardRect = whiteboard.getBoundingClientRect();
+        const x = e.clientX - offsetX - whiteboardRect.left;
+        const y = e.clientY - offsetY - whiteboardRect.top;
+
+        const maxX = whiteboardRect.width - currentNote.offsetWidth;
+        const maxY = whiteboardRect.height - currentNote.offsetHeight;
+
+        currentNote.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
+        currentNote.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+      }
+
+      function stopDrag() {
+        isDragging = false;
+        if (currentNote) {
+          currentNote.style.zIndex = '10';
+          currentNote = null;
+        }
+        document.removeEventListener('mousemove', dragNote);
+        document.removeEventListener('mouseup', stopDrag);
+      }
+
+      trashBin.addEventListener('click', function() {
+        if (deletedNotes === 0) {
+          alert('Trash bin is empty');
+          return;
+        }
+
+        alert(`Trash bin contains ${deletedNotes} deleted notes.`);
+      });
+    });
+  </script>
+</body>
+</html>
