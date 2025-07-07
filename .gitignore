@@ -1,2 +1,17 @@
+# Python 缓存文件与编译产物
+__pycache__/
+*.py[cod]
+
+# 环境文件
+*.env
+
+# VSCode / PyCharm 等 IDE 配置
+.vscode/
+.idea/
+
+# 操作系统文件
 .DS_Store
-.env
+
+# 依赖虚拟环境
+venv/
+env/
