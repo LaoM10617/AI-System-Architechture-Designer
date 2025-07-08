@@ -1,0 +1,29 @@
+// DOM ÔªËØ
+window.whiteboard = document.getElementById('whiteboard');
+window.addNoteBtn = document.getElementById('addNoteBtn');
+window.generateBtn = document.getElementById('generateBtn');
+window.generateDiagramBtn = document.getElementById('generateDiagramBtn');
+window.trashBin = document.getElementById('trashBin');
+window.resultNote = document.getElementById('resultNote');
+window.trashCount = trashBin.querySelector('.trash-count');
+window.trashList = trashBin.querySelector('.trash-list');
+window.docBin = document.getElementById('docBin');
+window.docCount = docBin.querySelector('.doc-count');
+window.docList = docBin.querySelector('.doc-list');
+window.bins = document.getElementById('bins');
+
+// ×´Ì¬±äÁ¿
+window.noteCount = 3;
+window.deletedNotes = 0;
+window.savedNotesArr = [];
+window.isDragging = false;
+window.currentNote = null;
+window.offsetX = 0;
+window.offsetY = 0;
+window.deletedNotesArr = [];
+window.dragPreview = null;
+window.trashListVisible = false;
+window.diagramHistory = [];
+window.diagramNoteRef = null;
+window.binsVisible = true;
+window.favoritesArr = [];
