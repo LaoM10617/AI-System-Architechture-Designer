@@ -104,7 +104,12 @@
                 const original = contentDiv.innerText;
                 contentDiv.innerText = '(Generating suggestion from AI...)';
 
-                fetch('/api/note_hint', {
+                const overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.innerHTML = '<div class="spinner"></div>';
+                whiteboard.appendChild(overlay);
+
+                fetch('http://127.0.0.1:8000/api/note_hint', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ existingNotes, title: titleText, content: existingContent })
@@ -120,6 +125,11 @@
                     .catch(err => {
                         console.error('AI suggestion failed', err);
                         contentDiv.innerText = original;
+                    })
+                    .finally(() => {
+                        if (whiteboard.contains(overlay)) {
+                            whiteboard.removeChild(overlay);
+                        }
                     });
             });
         }
@@ -179,7 +189,12 @@
                 .filter(text => text.length > 0)
                 .join("\n\n");
 
-            fetch("/api/note_hint", {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.innerHTML = '<div class="spinner"></div>';
+            whiteboard.appendChild(overlay);
+
+            fetch("http://127.0.0.1:8000/api/note_hint", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ existingNotes, title: title.textContent.trim(), content: "" })
@@ -187,6 +202,11 @@
                 .then(res => res.json())
                 .then(data => {
                     content.innerText = data.suggestion;
+                })
+                .finally(() => {
+                    if (whiteboard.contains(overlay)) {
+                        whiteboard.removeChild(overlay);
+                    }
                 });
         }
     }
