@@ -1,243 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI System Architecture Designer | Online Tetris</title>
     <!-- 引入字体图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <!-- 引入Mermaid.js库 -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <!-- 引入自定义样式 -->
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="app-container">
-        <!-- 头部区域：标题与副标题 -->
-        <header>
-            <h1>AI System Architecture Designer</h1>
-            <p class="subtitle">Design the architecture for your software with AI-powered recommendations</p>
-        </header>
+      <!-- 头部区域：标题与副标题 -->
+      <header>
+        <h1>AI System Architecture Designer</h1>
+        <p class="subtitle">
+          Design the architecture for your software with AI-powered
+          recommendations
+        </p>
+      </header>
 
-        <div class="main-content">
-            <!-- 左侧控制面板：应用类型、用户规模、核心功能、项目描述、按钮 -->
-            <div class="controls-section">
-                <!-- 应用详情分组 -->
-                <div class="control-group">
-                    <h2 class="control-title"><i class="fas fa-cube"></i> Application Details</h2>
+      <div class="main-content">
+        <!-- 左侧控制面板：应用类型、用户规模、核心功能、项目描述、按钮 -->
+        <div class="controls-section">
+          <!-- 应用详情分组 -->
+          <div class="control-group">
+            <h2 class="control-title">
+              <i class="fas fa-cube"></i> Application Details
+            </h2>
 
-                    <label for="appType">Application Type:</label>
-                    <select id="appType">
-                        <option>Web Application</option>
-                        <option selected>Mobile App</option>
-                        <option>Desktop Software</option>
-                        <option>Hybrid App (PWA)</option>
-                    </select>
+            <label for="appType">Application Type:</label>
+            <select id="appType">
+              <option>Web Application</option>
+              <option selected>Mobile App</option>
+              <option>Desktop Software</option>
+              <option>Hybrid App (PWA)</option>
+            </select>
 
-                    <label for="userCount">Expected User Scale:</label>
-                    <select id="userCount">
-                        <option>&lt;100 users</option>
-                        <option>100–1,000 users</option>
-                        <option selected>1,000–10,000 users</option>
-                        <option>10,000–100,000 users</option>
-                        <option>100,000+ users</option>
-                    </select>
-                </div>
+            <label for="userCount">Expected User Scale:</label>
+            <select id="userCount">
+              <option>&lt;100 users</option>
+              <option>100–1,000 users</option>
+              <option selected>1,000–10,000 users</option>
+              <option>10,000–100,000 users</option>
+              <option>100,000+ users</option>
+            </select>
+          </div>
 
-                <!-- 核心功能分组 -->
-                <div class="control-group">
-                    <h2 class="control-title"><i class="fas fa-star"></i> Core Features</h2>
-                    <div class="features-grid">
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature1" checked>
-                            <label for="feature1">Multiplayer Mode</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature2" checked>
-                            <label for="feature2">Real-time Gameplay</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature3" checked>
-                            <label for="feature3">Leaderboards</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature4">
-                            <label for="feature4">In-game Chat</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature5" checked>
-                            <label for="feature5">User Profiles</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature6">
-                            <label for="feature6">Tournaments</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature7" checked>
-                            <label for="feature7">Spectator Mode</label>
-                        </div>
-                        <div class="feature-item">
-                            <input type="checkbox" id="feature8" checked>
-                            <label for="feature8">Cross-platform</label>
-                        </div>
-                    </div>
-                </div>
+          <!-- 核心功能分组 -->
+          <div class="control-group">
+            <h2 class="control-title">
+              <i class="fas fa-star"></i> Core Features
+            </h2>
+            <div class="features-grid">
+              <div class="feature-item">
+                <input type="checkbox" id="feature1" checked />
+                <label for="feature1">Multiplayer Mode</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature2" checked />
+                <label for="feature2">Real-time Gameplay</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature3" checked />
+                <label for="feature3">Leaderboards</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature4" />
+                <label for="feature4">In-game Chat</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature5" checked />
+                <label for="feature5">User Profiles</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature6" />
+                <label for="feature6">Tournaments</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature7" checked />
+                <label for="feature7">Spectator Mode</label>
+              </div>
+              <div class="feature-item">
+                <input type="checkbox" id="feature8" checked />
+                <label for="feature8">Cross-platform</label>
+              </div>
+            </div>
+          </div>
 
-                <!-- 项目描述分组 -->
-                <div class="control-group">
-                    <h2 class="control-title"><i class="fas fa-file-alt"></i> Project Description</h2>
-                    <textarea id="projectDesc">We are building a multiplayer online Tetris game that allows players to compete in real-time. The game should support 1v1 and 2v2 modes, global leaderboards, and user profiles. Players should be able to spectate ongoing games. The system must handle 5,000+ concurrent users with low latency gameplay.</textarea>
-                </div>
+          <!-- 项目描述分组 -->
+          <div class="control-group">
+            <h2 class="control-title">
+              <i class="fas fa-file-alt"></i> Project Description
+            </h2>
+            <textarea id="projectDesc">
+We are building a multiplayer online Tetris game that allows players to compete in real-time. The game should support 1v1 and 2v2 modes, global leaderboards, and user profiles. Players should be able to spectate ongoing games. The system must handle 5,000+ concurrent users with low latency gameplay.</textarea
+            >
+          </div>
 
-                <!-- 生成架构按钮 -->
-                <button id="generateBtn">
-                    <i class="fas fa-brain"></i> Generate Architecture
+          <!-- 生成架构按钮 -->
+          <button id="generateBtn">
+            <i class="fas fa-brain"></i> Generate Architecture
+          </button>
+          <!--生成流程图按钮-->
+          <button id="generateDiagramBtn">
+            <i class="fas fa-project-diagram"></i> Generate Diagram
+          </button>
+          <!-- 添加便签按钮 -->
+          <button class="add-note-btn" id="addNoteBtn">
+            <i class="fas fa-plus"></i> Add Sticky Note
+          </button>
+        </div>
+
+        <!-- Collaboration Panel -->
+        <div class="draggable-collab-container" id="collabPanelContainer">
+          <div class="collab-panel" id="collabPanel">
+            <div class="collab-header">
+              <i class="fas fa-users"></i> Collaboration
+              <span class="collab-status" id="collabStatus">Offline</span>
+            </div>
+            <div class="collab-controls">
+              <div class="sessions-controls">
+                <button id="listSessionsBtn">
+                  <i class="fas fa-search"></i> Find Sessions
                 </button>
-                <!--生成流程图按钮-->
-                <button id="generateDiagramBtn">
-                    <i class="fas fa-project-diagram"></i> Generate Diagram
-                </button>
-                <!-- 添加便签按钮 -->
-                <button class="add-note-btn" id="addNoteBtn">
-                    <i class="fas fa-plus"></i> Add Sticky Note
-                </button>
-            </div>
-
-            <!-- 右侧白板区域：用于展示便签和架构结果 -->
-            <div class="whiteboard-section" id="whiteboard">
-                <div class="grid-lines"></div>
-
-                <!-- 预置便签：项目相关说明 -->
-                <div class="note" style="top: 120px; left: 150px;">
-                    <div class="note-header">
-                        <div>
-                            <div class="title-edit-tooltip">Double-click to edit title</div>
-                            <div class="note-title" tabindex="0">Game Concept</div>
-                        </div>
-                        <div class="note-actions">
-                            <div class="note-action suggest-action" title="AI Suggest"><i class="fas fa-magic"></i></div>
-                            <div class="note-action"><i class="fas fa-times"></i></div>
-                        </div>
-                    </div>
-                    <div class="note-content">
-                        Multiplayer Tetris with:
-                        - Real-time 1v1 and 2v2 battles
-                        - Global leaderboards
-                        - Spectator mode
-                        - Customizable themes
-                        - Cross-platform play
-                        - Skill-based matchmaking
-                    </div>
+                <div
+                  class="sessions-list-container"
+                  id="sessionsListContainer"
+                  style="display: none"
+                >
+                  <div class="sessions-list-header">
+                    <h3><i class="fas fa-users"></i> Active Sessions</h3>
+                    <button class="close-sessions-list">&times;</button>
+                  </div>
+                  <div class="sessions-list" id="sessionsList">
+                    <!-- Sessions will appear here dynamically -->
+                  </div>
                 </div>
+              </div>
+              <button id="startCollabBtn">
+                <i class="fas fa-share-alt"></i> Start Session
+              </button>
+              <button id="joinCollabBtn" disabled>
+                <i class="fas fa-user-plus"></i> Join Session
+              </button>
+              <input type="text" id="roomIdInput" placeholder="Room ID" />
+            </div>
+            <div class="user-list" id="userList">
+              <!-- Active users will appear here -->
+            </div>
+          </div>
+        </div>
 
-                <div class="note" style="top: 120px; left: 450px;">
-                    <div class="note-header">
-                        <div>
-                            <div class="title-edit-tooltip">Double-click to edit title</div>
-                            <div class="note-title" tabindex="0">Technical Requirements</div>
-                        </div>
-                        <div class="note-actions">
-                            <div class="note-action suggest-action" title="AI Suggest"><i class="fas fa-magic"></i></div>
-                            <div class="note-action"><i class="fas fa-times"></i></div>
-                        </div>
-                    </div>
-                    <div class="note-content">
-                        - Low latency gameplay (&lt;100ms)
-                        - Support 5,000+ concurrent users
-                        - Real-time multiplayer synchronization
-                        - Account system with stats tracking
-                        - Anti-cheat mechanisms
-                        - Scalable infrastructure
-                        - Cross-platform support (Web, iOS, Android)
-                    </div>
+        <!-- 右侧白板区域：用于展示便签和架构结果 -->
+        <div class="whiteboard-section" id="whiteboard">
+          <div class="grid-lines"></div>
+
+          <!-- 预置便签：项目相关说明 -->
+          <div class="note" style="top: 120px; left: 150px">
+            <div class="note-header">
+              <div>
+                <div class="title-edit-tooltip">Double-click to edit title</div>
+                <div class="note-title" tabindex="0">Game Concept</div>
+              </div>
+              <div class="note-actions">
+                <div class="note-action suggest-action" title="AI Suggest">
+                  <i class="fas fa-magic"></i>
                 </div>
+                <div class="note-action"><i class="fas fa-times"></i></div>
+              </div>
+            </div>
+            <div class="note-content">
+              Multiplayer Tetris with: - Real-time 1v1 and 2v2 battles - Global
+              leaderboards - Spectator mode - Customizable themes -
+              Cross-platform play - Skill-based matchmaking
+            </div>
+          </div>
 
-                <div class="note" style="top: 120px; left: 750px;">
-                    <div class="note-header">
-                        <div>
-                            <div class="title-edit-tooltip">Double-click to edit title</div>
-                            <div class="note-title" tabindex="0">Target Audience</div>
-                        </div>
-                        <div class="note-actions">
-                            <div class="note-action suggest-action" title="AI Suggest"><i class="fas fa-magic"></i></div>
-                            <div class="note-action"><i class="fas fa-times"></i></div>
-                        </div>
-                    </div>
-                    <div class="note-content">
-                        - Casual gamers (25-45 age group)
-                        - Competitive puzzle players
-                        - Esports enthusiasts
-                        - Nostalgia players (original Tetris fans)
-                        - Social gamers
-                        - Cross-platform users
-
-                        Monetization:
-                        - Cosmetic items
-                        - Battle pass
-                        - Tournament entry fees
-                        - Ad-supported free tier
-                    </div>
+          <div class="note" style="top: 120px; left: 450px">
+            <div class="note-header">
+              <div>
+                <div class="title-edit-tooltip">Double-click to edit title</div>
+                <div class="note-title" tabindex="0">
+                  Technical Requirements
                 </div>
-
-                <!-- 架构生成结果便签（初始隐藏） -->
-                <div class="note result-note" style="top: 350px; left: 300px; display: none;" id="resultNote">
-                    <div class="note-header">
-                        <div>
-                            <div class="title-edit-tooltip">Double-click to edit title</div>
-                            <div class="note-title" tabindex="0">AI Architecture Proposal</div>
-                        </div>
-                        <div class="note-actions">
-                            <div class="note-action"><i class="fas fa-times"></i></div>
-                        </div>
-                    </div>
-                    <div class="note-content">
-                        <!-- 这里为AI生成的系统架构建议内容 -->
-                        <strong>Multiplayer Tetris System Architecture</strong>
-                        ...
-                    </div>
-                    <button class="favorite-btn-in-footer" title="收藏"><i class="far fa-star"></i></button>
+              </div>
+              <div class="note-actions">
+                <div class="note-action suggest-action" title="AI Suggest">
+                  <i class="fas fa-magic"></i>
                 </div>
+                <div class="note-action"><i class="fas fa-times"></i></div>
+              </div>
             </div>
-        </div>
+            <div class="note-content">
+              - Low latency gameplay (&lt;100ms) - Support 5,000+ concurrent
+              users - Real-time multiplayer synchronization - Account system
+              with stats tracking - Anti-cheat mechanisms - Scalable
+              infrastructure - Cross-platform support (Web, iOS, Android)
+            </div>
+          </div>
 
-        <div class="bins" id="bins">
-            <i class="fas fa-eye-slash"></i>
-            <div class="bins-list"
-                 style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
+          <div class="note" style="top: 120px; left: 750px">
+            <div class="note-header">
+              <div>
+                <div class="title-edit-tooltip">Double-click to edit title</div>
+                <div class="note-title" tabindex="0">Target Audience</div>
+              </div>
+              <div class="note-actions">
+                <div class="note-action suggest-action" title="AI Suggest">
+                  <i class="fas fa-magic"></i>
+                </div>
+                <div class="note-action"><i class="fas fa-times"></i></div>
+              </div>
             </div>
-        </div>
+            <div class="note-content">
+              - Casual gamers (25-45 age group) - Competitive puzzle players -
+              Esports enthusiasts - Nostalgia players (original Tetris fans) -
+              Social gamers - Cross-platform users Monetization: - Cosmetic
+              items - Battle pass - Tournament entry fees - Ad-supported free
+              tier
+            </div>
+          </div>
 
-        <!-- 固定在右下角的垃圾桶，用于显示删除的便签数量 -->
-        <div class="trash-bin" id="trashBin">
-            <i class="fas fa-trash-alt"></i>
-            <div class="trash-count">0</div>
-            <div class="trash-list"
-                 style="display:none; position:absolute; bottom:80px; right:0; min-width:200px; max-height:300px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0;">
+          <!-- 架构生成结果便签（初始隐藏） -->
+          <div
+            class="note result-note"
+            style="top: 350px; left: 300px; display: none"
+            id="resultNote"
+          >
+            <div class="note-header">
+              <div>
+                <div class="title-edit-tooltip">Double-click to edit title</div>
+                <div class="note-title" tabindex="0">
+                  AI Architecture Proposal
+                </div>
+              </div>
+              <div class="note-actions">
+                <div class="note-action"><i class="fas fa-times"></i></div>
+              </div>
             </div>
-        </div>
-        <!-- 固定在左下角的文档按钮，用于显示保存的草稿列表 -->
-        <div class="doc-bin" id="docBin">
-            <i class="fas fa-file-alt"></i> <!-- Font Awesome 文档图标 -->
-            <div class="doc-count">0</div> <!-- 可选：显示草稿数量 -->
-            <div class="doc-list"
-                 style="display: none; position: absolute; bottom: 80px; left: 0; min-width: 200px; max-height: 300px; overflow: auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); z-index: 200; padding: 10px 0;">
+            <div class="note-content">
+              <!-- 这里为AI生成的系统架构建议内容 -->
+              <strong>Multiplayer Tetris System Architecture</strong>
+              ...
             </div>
+            <button class="favorite-btn-in-footer" title="收藏">
+              <i class="far fa-star"></i>
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- 1. 在文档按钮（id=docBin）后添加弹窗HTML -->
-        <div class="doc-popup" id="docPopup" style="display:none; position:absolute; bottom:80px; right:0; min-width:220px; max-width:220px; overflow:auto; background:#fff; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:200; padding:10px 0; font-size:13px; line-height:1.5;">
-            <div class="doc-header" style="padding:10px 20px; border-bottom:2px solid #2196f3; display:flex; justify-content:space-between; align-items:center; background:#e3f2fd;">
-                <span style="font-weight:bold; color:#222; text-align:center; width:100%;">Favorites</span>
-            </div>
-            <div id="favoritesList" style="padding:8px 0;"></div>
-        </div>
+      <div class="bins" id="bins">
+        <i class="fas fa-eye-slash"></i>
+        <div
+          class="bins-list"
+          style="
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            padding: 10px 0;
+          "
+        ></div>
+      </div>
 
-        <!-- 页脚信息 -->
-        <footer>
-            <p>AI System Architecture Designer &copy; 2025 | Create, visualize and optimize your system designs</p>
-        </footer>
+      <!-- 固定在右下角的垃圾桶，用于显示删除的便签数量 -->
+      <div class="trash-bin" id="trashBin">
+        <i class="fas fa-trash-alt"></i>
+        <div class="trash-count">0</div>
+        <div
+          class="trash-list"
+          style="
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            padding: 10px 0;
+          "
+        ></div>
+      </div>
+      <!-- 固定在左下角的文档按钮，用于显示保存的草稿列表 -->
+      <div class="doc-bin" id="docBin">
+        <i class="fas fa-file-alt"></i>
+        <!-- Font Awesome 文档图标 -->
+        <div class="doc-count">0</div>
+        <!-- 可选：显示草稿数量 -->
+        <div
+          class="doc-list"
+          style="
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow: auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            z-index: 200;
+            padding: 10px 0;
+          "
+        ></div>
+      </div>
+
+      <!-- 1. 在文档按钮（id=docBin）后添加弹窗HTML -->
+      <div
+        class="doc-popup"
+        id="docPopup"
+        style="
+          display: none;
+          position: absolute;
+          bottom: 80px;
+          right: 0;
+          min-width: 220px;
+          max-width: 220px;
+          overflow: auto;
+          background: #fff;
+          border-radius: 10px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+          z-index: 200;
+          padding: 10px 0;
+          font-size: 13px;
+          line-height: 1.5;
+        "
+      >
+        <div
+          class="doc-header"
+          style="
+            padding: 10px 20px;
+            border-bottom: 2px solid #2196f3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e3f2fd;
+          "
+        >
+          <span
+            style="
+              font-weight: bold;
+              color: #222;
+              text-align: center;
+              width: 100%;
+            "
+            >Favorites</span
+          >
+        </div>
+        <div id="favoritesList" style="padding: 8px 0"></div>
+      </div>
+
+      <!-- 页脚信息 -->
+      <footer>
+        <p>
+          AI System Architecture Designer &copy; 2025 | Create, visualize and
+          optimize your system designs
+        </p>
+      </footer>
     </div>
     <script src="js/global_variables.js"></script>
     <script src="js/notes.js"></script>
@@ -245,6 +384,7 @@
     <script src="js/favorites.js"></script>
     <script src="js/architechture.js"></script>
     <script src="js/diagram.js"></script>
+    <script src="js/collaboration.js"></script>
     <script src="js/main.js"></script>
-</body>
+  </body>
 </html>
