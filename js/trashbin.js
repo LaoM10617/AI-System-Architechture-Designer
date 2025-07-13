@@ -1,3 +1,4 @@
+
 function initTrashBin() {
     // Debugging: Confirm elements exist
     console.log('Elements:', { bins, trashBin, docBin });
@@ -19,19 +20,19 @@ function initTrashBin() {
         binsIcon.classList.toggle('fa-eye-slash');
     });
 
-    // ����Ͱ����¼�
+    // 垃圾桶点击事件
     trashBin.addEventListener('click', function () {
-        // ���ٵ���
+        // 不再弹窗
     });
 
-    // ����Ͱ��ק�ָ�����
+    // 垃圾桶拖拽恢复功能
     trashBin.setAttribute('draggable', 'true');
 
     trashBin.addEventListener('dragstart', function (e) {
         if (deletedNotesArr.length === 0) return;
         const last = deletedNotesArr[deletedNotesArr.length - 1];
         e.dataTransfer.setData('text/plain', 'restore-note');
-        // ��קԤ���ڵ�
+        // 拖拽预览节点
         dragPreview = document.createElement('div');
         dragPreview.innerHTML = last.html;
         dragPreview.style.position = 'absolute';
@@ -49,7 +50,7 @@ function initTrashBin() {
         }
     });
 
-    // �������Ͱ�л���ʾ/����
+    // 点击垃圾桶切换显示/隐藏
     trashBin.addEventListener('click', function (e) {
         if (deletedNotesArr.length === 0) return;
         trashListVisible = !trashListVisible;
@@ -57,7 +58,7 @@ function initTrashBin() {
         e.stopPropagation();
     });
 
-    // ���ҳ�������ط��ر�
+    // 点击页面其他地方关闭
     window.addEventListener('click', function () {
         if (trashListVisible) {
             trashList.style.display = 'none';
@@ -65,46 +66,13 @@ function initTrashBin() {
         }
     });
 
-    // ��ֹ��� list ����ð�ݣ�������ر�
+    // 阻止点击 list 区域冒泡，避免误关闭
     trashList.addEventListener('click', function (e) {
         e.stopPropagation();
     });
 
 
-
-    // �ָ���ǩ����
-    function restoreNote(idx, x, y) {
-        const item = deletedNotesArr.splice(idx, 1)[0];
-        const temp = document.createElement('div');
-        temp.innerHTML = item.html;
-        const restoredNote = temp.firstElementChild;
-        // ��λ
-        if (x !== null && y !== null) {
-            const whiteboardRect = whiteboard.getBoundingClientRect();
-            // ֱ���ñ�ǩ���ϽǶ������ָ��
-            restoredNote.style.left = (x - whiteboardRect.left) + 'px';
-            restoredNote.style.top = (y - whiteboardRect.top) + 'px';
-        } else {
-            restoredNote.style.left = item.left;
-            restoredNote.style.top = item.top;
-        }
-        restoredNote.style.transform = '';
-        restoredNote.style.opacity = '1';
-        whiteboard.appendChild(restoredNote);
-        addNoteEvents(restoredNote);
-        deletedNotes--;
-        trashCount.textContent = deletedNotes;
-        updateTrashList();
-        // ����������ѿգ��Զ��رյ���
-        if (deletedNotesArr.length === 0 && trashListVisible) {
-            setTimeout(() => {
-                trashList.style.display = 'none';
-                trashListVisible = false;
-            }, 400);
-        }
-    }
-
-    // ��ק�ָ���֧�ִ� trash-list ��ק��
+    // 拖拽恢复（支持从 trash-list 拖拽）
     whiteboard.addEventListener('dragover', function (e) {
         if (deletedNotesArr.length === 0) return;
         e.preventDefault();
@@ -119,9 +87,9 @@ function initTrashBin() {
         restoreNote(idx, e.clientX, e.clientY);
     });
 
-    // ����Ͱ֧����קɾ��
+    // 垃圾桶支持拖拽删除
     trashBin.addEventListener('dragover', function (e) {
-        // ��������
+        // 允许拖入
         if (currentNote) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
@@ -131,13 +99,13 @@ function initTrashBin() {
     trashBin.addEventListener('drop', function (e) {
         if (currentNote && whiteboard.contains(currentNote)) {
             e.preventDefault();
-            // ɾ������
+            // 删除动画
             const noteToDelete = currentNote;
-            currentNote = null; // ������գ���ֹ��δ���
+            currentNote = null; // 立即清空，防止多次触发
             noteToDelete.style.transform = 'scale(0.9)';
             noteToDelete.style.opacity = '0.5';
             setTimeout(() => {
-                // �ٴ��жϽڵ���Ч��
+                // 再次判断节点有效性
                 if (noteToDelete && whiteboard.contains(noteToDelete)) {
                     deletedNotesArr.push({
                         html: noteToDelete.outerHTML,
@@ -154,11 +122,12 @@ function initTrashBin() {
     });
 }
 
-// ���»������б�
+
+// 更新回收箱列表
 function updateTrashList() {
     trashList.innerHTML = '';
 
-    // ��������ͷ������հ�ť
+    // 重新添加头部和清空按钮
     const header = document.createElement('div');
     header.className = 'trash-header';
     header.innerHTML = `
@@ -167,7 +136,7 @@ function updateTrashList() {
                 `;
     trashList.appendChild(header);
 
-    // ������հ�ť�¼�
+    // 添加清空按钮事件
     const clearBtn = header.querySelector('#clearTrashBtn');
     clearBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -184,7 +153,7 @@ function updateTrashList() {
     });
 
     if (deletedNotesArr.length === 0) {
-        // ��״̬��ʾ
+        // 空状态提示
         const emptyMsg = document.createElement('div');
         emptyMsg.style.textAlign = 'center';
         emptyMsg.style.color = '#888';
@@ -193,21 +162,21 @@ function updateTrashList() {
         emptyMsg.style.borderBottom = '1px solid #eee';
         emptyMsg.textContent = 'No deleted notes yet.';
         trashList.appendChild(emptyMsg);
-        // 1����Զ��ر�
+        // 1秒后自动关闭
         setTimeout(() => {
             trashList.style.display = 'none';
             trashListVisible = false;
         }, 1000);
-        // ͬ������
+        // 同步计数
         trashCount.textContent = '0';
         return;
     }
     deletedNotesArr.forEach((item, idx) => {
-        // ��ȡ����
+        // 提取标题
         let temp = document.createElement('div');
         temp.innerHTML = item.html;
         let title = temp.querySelector('.note-title')?.textContent || 'Untitled';
-        // �����б���
+        // 创建列表项
         const li = document.createElement('div');
         li.className = 'trash-list-item';
         li.setAttribute('draggable', 'true');
@@ -218,10 +187,10 @@ function updateTrashList() {
                             <button class="delete-btn" data-idx="${idx}"><i class='fas fa-trash' style='font-size:14px;color:#fff;'></i></button>
                         </div>
                     `;
-        // ��ק�ָ�
+        // 拖拽恢复
         li.addEventListener('dragstart', function (e) {
             e.dataTransfer.setData('text/plain', idx);
-            // ��קԤ��
+            // 拖拽预览
             dragPreview = document.createElement('div');
             dragPreview.innerHTML = item.html;
             dragPreview.style.position = 'absolute';
@@ -237,12 +206,12 @@ function updateTrashList() {
                 dragPreview = null;
             }
         });
-        // ����ָ�
+        // 点击恢复
         li.querySelector('.restore-btn').addEventListener('click', function (e) {
             e.stopPropagation();
             restoreNote(idx, null, null);
         });
-        // �������ɾ��
+        // 点击永久删除
         li.querySelector('.delete-btn').addEventListener('click', function (e) {
             e.stopPropagation();
             const idxToDelete = parseInt(this.dataset.idx);
@@ -251,7 +220,7 @@ function updateTrashList() {
                 deletedNotes--;
                 trashCount.textContent = deletedNotes;
                 updateTrashList();
-                // ����������ѿգ��Զ��رյ���
+                // 如果回收箱已空，自动关闭弹窗
                 if (deletedNotesArr.length === 0 && trashListVisible) {
                     setTimeout(() => {
                         trashList.style.display = 'none';
@@ -264,5 +233,36 @@ function updateTrashList() {
     });
 }
 
-window.initTrashBin = initTrashBin;
+// 恢复便签函数
+function restoreNote(idx, x, y) {
+    const item = deletedNotesArr.splice(idx, 1)[0];
+    const temp = document.createElement('div');
+    temp.innerHTML = item.html;
+    const restoredNote = temp.firstElementChild;
+    // 定位
+    if (x !== null && y !== null) {
+        const whiteboardRect = whiteboard.getBoundingClientRect();
+        // 直接让便签左上角对齐鼠标指针
+        restoredNote.style.left = (x - whiteboardRect.left) + 'px';
+        restoredNote.style.top = (y - whiteboardRect.top) + 'px';
+    } else {
+        restoredNote.style.left = item.left;
+        restoredNote.style.top = item.top;
+    }
+    restoredNote.style.transform = '';
+    restoredNote.style.opacity = '1';
+    whiteboard.appendChild(restoredNote);
+    addNoteEvents(restoredNote);
+    deletedNotes--;
+    trashCount.textContent = deletedNotes;
+    updateTrashList();
+    // 如果回收箱已空，自动关闭弹窗
+    if (deletedNotesArr.length === 0 && trashListVisible) {
+        setTimeout(() => {
+            trashList.style.display = 'none';
+            trashListVisible = false;
+        }, 400);
+    }
+}
 
+window.initTrashBin = initTrashBin;
