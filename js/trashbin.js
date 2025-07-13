@@ -1,80 +1,164 @@
-function initTrashBin() { 
-// Debugging: Confirm elements exist
-console.log('Elements:', { bins, trashBin, docBin });
+function initTrashBin() {
+    // Debugging: Confirm elements exist
+    console.log('Elements:', { bins, trashBin, docBin });
 
-bins.addEventListener('click', function () {
-    const binsIcon = this.querySelector('i');
-    binsVisible = !binsVisible;
+    bins.addEventListener('click', function () {
+        const binsIcon = this.querySelector('i');
+        binsVisible = !binsVisible;
 
-    if (binsVisible) {
-        trashBin.classList.remove('hidden');
-        docBin.classList.remove('hidden');
-    } else {
-        trashBin.classList.add('hidden');
-        docBin.classList.add('hidden');
+        if (binsVisible) {
+            trashBin.classList.remove('hidden');
+            docBin.classList.remove('hidden');
+        } else {
+            trashBin.classList.add('hidden');
+            docBin.classList.add('hidden');
+        }
+
+        // Toggle icon
+        binsIcon.classList.toggle('fa-eye');
+        binsIcon.classList.toggle('fa-eye-slash');
+    });
+
+    // ï¿½ï¿½ï¿½ï¿½Í°ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
+    trashBin.addEventListener('click', function () {
+        // ï¿½ï¿½ï¿½Ùµï¿½ï¿½ï¿½
+    });
+
+    // ï¿½ï¿½ï¿½ï¿½Í°ï¿½ï¿½×§ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½
+    trashBin.setAttribute('draggable', 'true');
+
+    trashBin.addEventListener('dragstart', function (e) {
+        if (deletedNotesArr.length === 0) return;
+        const last = deletedNotesArr[deletedNotesArr.length - 1];
+        e.dataTransfer.setData('text/plain', 'restore-note');
+        // ï¿½ï¿½×§Ô¤ï¿½ï¿½ï¿½Úµï¿½
+        dragPreview = document.createElement('div');
+        dragPreview.innerHTML = last.html;
+        dragPreview.style.position = 'absolute';
+        dragPreview.style.pointerEvents = 'none';
+        dragPreview.style.opacity = '0.7';
+        dragPreview.style.zIndex = '9999';
+        document.body.appendChild(dragPreview);
+        e.dataTransfer.setDragImage(dragPreview, 100, 30);
+    });
+
+    trashBin.addEventListener('dragend', function () {
+        if (dragPreview && dragPreview.parentNode) {
+            dragPreview.parentNode.removeChild(dragPreview);
+            dragPreview = null;
+        }
+    });
+
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í°ï¿½Ð»ï¿½ï¿½ï¿½Ê¾/ï¿½ï¿½ï¿½ï¿½
+    trashBin.addEventListener('click', function (e) {
+        if (deletedNotesArr.length === 0) return;
+        trashListVisible = !trashListVisible;
+        trashList.style.display = trashListVisible ? 'block' : 'none';
+        e.stopPropagation();
+    });
+
+    // ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø·ï¿½ï¿½Ø±ï¿½
+    window.addEventListener('click', function () {
+        if (trashListVisible) {
+            trashList.style.display = 'none';
+            trashListVisible = false;
+        }
+    });
+
+    // ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ list ï¿½ï¿½ï¿½ï¿½Ã°ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½
+    trashList.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+
+
+    // ï¿½Ö¸ï¿½ï¿½ï¿½Ç©ï¿½ï¿½ï¿½ï¿½
+    function restoreNote(idx, x, y) {
+        const item = deletedNotesArr.splice(idx, 1)[0];
+        const temp = document.createElement('div');
+        temp.innerHTML = item.html;
+        const restoredNote = temp.firstElementChild;
+        // ï¿½ï¿½Î»
+        if (x !== null && y !== null) {
+            const whiteboardRect = whiteboard.getBoundingClientRect();
+            // Ö±ï¿½ï¿½ï¿½Ã±ï¿½Ç©ï¿½ï¿½ï¿½Ï½Ç¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+            restoredNote.style.left = (x - whiteboardRect.left) + 'px';
+            restoredNote.style.top = (y - whiteboardRect.top) + 'px';
+        } else {
+            restoredNote.style.left = item.left;
+            restoredNote.style.top = item.top;
+        }
+        restoredNote.style.transform = '';
+        restoredNote.style.opacity = '1';
+        whiteboard.appendChild(restoredNote);
+        addNoteEvents(restoredNote);
+        deletedNotes--;
+        trashCount.textContent = deletedNotes;
+        updateTrashList();
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¿Õ£ï¿½ï¿½Ô¶ï¿½ï¿½Ø±Õµï¿½ï¿½ï¿½
+        if (deletedNotesArr.length === 0 && trashListVisible) {
+            setTimeout(() => {
+                trashList.style.display = 'none';
+                trashListVisible = false;
+            }, 400);
+        }
     }
 
-    // Toggle icon
-    binsIcon.classList.toggle('fa-eye');
-    binsIcon.classList.toggle('fa-eye-slash');
-});
+    // ï¿½ï¿½×§ï¿½Ö¸ï¿½ï¿½ï¿½Ö§ï¿½Ö´ï¿½ trash-list ï¿½ï¿½×§ï¿½ï¿½
+    whiteboard.addEventListener('dragover', function (e) {
+        if (deletedNotesArr.length === 0) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+    whiteboard.addEventListener('drop', function (e) {
+        if (deletedNotesArr.length === 0) return;
+        e.preventDefault();
+        let idx = e.dataTransfer.getData('text/plain');
+        idx = parseInt(idx);
+        if (isNaN(idx) || idx < 0 || idx >= deletedNotesArr.length) return;
+        restoreNote(idx, e.clientX, e.clientY);
+    });
 
-// À¬»øÍ°µã»÷ÊÂ¼þ
-trashBin.addEventListener('click', function () {
-    // ²»ÔÙµ¯´°
-});
+    // ï¿½ï¿½ï¿½ï¿½Í°Ö§ï¿½ï¿½ï¿½ï¿½×§É¾ï¿½ï¿½
+    trashBin.addEventListener('dragover', function (e) {
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        if (currentNote) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+    });
 
-// À¬»øÍ°ÍÏ×§»Ö¸´¹¦ÄÜ
-trashBin.setAttribute('draggable', 'true');
+    trashBin.addEventListener('drop', function (e) {
+        if (currentNote && whiteboard.contains(currentNote)) {
+            e.preventDefault();
+            // É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            const noteToDelete = currentNote;
+            currentNote = null; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ£ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½Î´ï¿½ï¿½ï¿½
+            noteToDelete.style.transform = 'scale(0.9)';
+            noteToDelete.style.opacity = '0.5';
+            setTimeout(() => {
+                // ï¿½Ù´ï¿½ï¿½Ð¶Ï½Úµï¿½ï¿½ï¿½Ð§ï¿½ï¿½
+                if (noteToDelete && whiteboard.contains(noteToDelete)) {
+                    deletedNotesArr.push({
+                        html: noteToDelete.outerHTML,
+                        top: noteToDelete.style.top,
+                        left: noteToDelete.style.left
+                    });
+                    whiteboard.removeChild(noteToDelete);
+                    deletedNotes++;
+                    trashCount.textContent = deletedNotes;
+                    updateTrashList();
+                }
+            }, 200);
+        }
+    });
+}
 
-trashBin.addEventListener('dragstart', function (e) {
-    if (deletedNotesArr.length === 0) return;
-    const last = deletedNotesArr[deletedNotesArr.length - 1];
-    e.dataTransfer.setData('text/plain', 'restore-note');
-    // ÍÏ×§Ô¤ÀÀ½Úµã
-    dragPreview = document.createElement('div');
-    dragPreview.innerHTML = last.html;
-    dragPreview.style.position = 'absolute';
-    dragPreview.style.pointerEvents = 'none';
-    dragPreview.style.opacity = '0.7';
-    dragPreview.style.zIndex = '9999';
-    document.body.appendChild(dragPreview);
-    e.dataTransfer.setDragImage(dragPreview, 100, 30);
-});
-
-trashBin.addEventListener('dragend', function () {
-    if (dragPreview && dragPreview.parentNode) {
-        dragPreview.parentNode.removeChild(dragPreview);
-        dragPreview = null;
-    }
-});
-
-// µã»÷À¬»øÍ°ÇÐ»»ÏÔÊ¾/Òþ²Ø
-trashBin.addEventListener('click', function (e) {
-    if (deletedNotesArr.length === 0) return;
-    trashListVisible = !trashListVisible;
-    trashList.style.display = trashListVisible ? 'block' : 'none';
-    e.stopPropagation();
-});
-
-// µã»÷Ò³ÃæÆäËûµØ·½¹Ø±Õ
-window.addEventListener('click', function () {
-    if (trashListVisible) {
-        trashList.style.display = 'none';
-        trashListVisible = false;
-    }
-});
-
-// ×èÖ¹µã»÷ list ÇøÓòÃ°ÅÝ£¬±ÜÃâÎó¹Ø±Õ
-trashList.addEventListener('click', function (e) {
-    e.stopPropagation();
-});
-
-// ¸üÐÂ»ØÊÕÏäÁÐ±í
+// ï¿½ï¿½ï¿½Â»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
 function updateTrashList() {
     trashList.innerHTML = '';
 
-    // ÖØÐÂÌí¼ÓÍ·²¿ºÍÇå¿Õ°´Å¥
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ°ï¿½Å¥
     const header = document.createElement('div');
     header.className = 'trash-header';
     header.innerHTML = `
@@ -83,7 +167,7 @@ function updateTrashList() {
                 `;
     trashList.appendChild(header);
 
-    // Ìí¼ÓÇå¿Õ°´Å¥ÊÂ¼þ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ°ï¿½Å¥ï¿½Â¼ï¿½
     const clearBtn = header.querySelector('#clearTrashBtn');
     clearBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -100,7 +184,7 @@ function updateTrashList() {
     });
 
     if (deletedNotesArr.length === 0) {
-        // ¿Õ×´Ì¬ÌáÊ¾
+        // ï¿½ï¿½×´Ì¬ï¿½ï¿½Ê¾
         const emptyMsg = document.createElement('div');
         emptyMsg.style.textAlign = 'center';
         emptyMsg.style.color = '#888';
@@ -109,21 +193,21 @@ function updateTrashList() {
         emptyMsg.style.borderBottom = '1px solid #eee';
         emptyMsg.textContent = 'No deleted notes yet.';
         trashList.appendChild(emptyMsg);
-        // 1Ãëºó×Ô¶¯¹Ø±Õ
+        // 1ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ø±ï¿½
         setTimeout(() => {
             trashList.style.display = 'none';
             trashListVisible = false;
         }, 1000);
-        // Í¬²½¼ÆÊý
+        // Í¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         trashCount.textContent = '0';
         return;
     }
     deletedNotesArr.forEach((item, idx) => {
-        // ÌáÈ¡±êÌâ
+        // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
         let temp = document.createElement('div');
         temp.innerHTML = item.html;
         let title = temp.querySelector('.note-title')?.textContent || 'Untitled';
-        // ´´½¨ÁÐ±íÏî
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½
         const li = document.createElement('div');
         li.className = 'trash-list-item';
         li.setAttribute('draggable', 'true');
@@ -134,10 +218,10 @@ function updateTrashList() {
                             <button class="delete-btn" data-idx="${idx}"><i class='fas fa-trash' style='font-size:14px;color:#fff;'></i></button>
                         </div>
                     `;
-        // ÍÏ×§»Ö¸´
+        // ï¿½ï¿½×§ï¿½Ö¸ï¿½
         li.addEventListener('dragstart', function (e) {
             e.dataTransfer.setData('text/plain', idx);
-            // ÍÏ×§Ô¤ÀÀ
+            // ï¿½ï¿½×§Ô¤ï¿½ï¿½
             dragPreview = document.createElement('div');
             dragPreview.innerHTML = item.html;
             dragPreview.style.position = 'absolute';
@@ -153,12 +237,12 @@ function updateTrashList() {
                 dragPreview = null;
             }
         });
-        // µã»÷»Ö¸´
+        // ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½
         li.querySelector('.restore-btn').addEventListener('click', function (e) {
             e.stopPropagation();
             restoreNote(idx, null, null);
         });
-        // µã»÷ÓÀ¾ÃÉ¾³ý
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½
         li.querySelector('.delete-btn').addEventListener('click', function (e) {
             e.stopPropagation();
             const idxToDelete = parseInt(this.dataset.idx);
@@ -167,7 +251,7 @@ function updateTrashList() {
                 deletedNotes--;
                 trashCount.textContent = deletedNotes;
                 updateTrashList();
-                // Èç¹û»ØÊÕÏäÒÑ¿Õ£¬×Ô¶¯¹Ø±Õµ¯´°
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¿Õ£ï¿½ï¿½Ô¶ï¿½ï¿½Ø±Õµï¿½ï¿½ï¿½
                 if (deletedNotesArr.length === 0 && trashListVisible) {
                     setTimeout(() => {
                         trashList.style.display = 'none';
@@ -178,88 +262,6 @@ function updateTrashList() {
         });
         trashList.appendChild(li);
     });
-}
-
-// »Ö¸´±ãÇ©º¯Êý
-function restoreNote(idx, x, y) {
-    const item = deletedNotesArr.splice(idx, 1)[0];
-    const temp = document.createElement('div');
-    temp.innerHTML = item.html;
-    const restoredNote = temp.firstElementChild;
-    // ¶¨Î»
-    if (x !== null && y !== null) {
-        const whiteboardRect = whiteboard.getBoundingClientRect();
-        // Ö±½ÓÈÃ±ãÇ©×óÉÏ½Ç¶ÔÆëÊó±êÖ¸Õë
-        restoredNote.style.left = (x - whiteboardRect.left) + 'px';
-        restoredNote.style.top = (y - whiteboardRect.top) + 'px';
-    } else {
-        restoredNote.style.left = item.left;
-        restoredNote.style.top = item.top;
-    }
-    restoredNote.style.transform = '';
-    restoredNote.style.opacity = '1';
-    whiteboard.appendChild(restoredNote);
-    addNoteEvents(restoredNote);
-    deletedNotes--;
-    trashCount.textContent = deletedNotes;
-    updateTrashList();
-    // Èç¹û»ØÊÕÏäÒÑ¿Õ£¬×Ô¶¯¹Ø±Õµ¯´°
-    if (deletedNotesArr.length === 0 && trashListVisible) {
-        setTimeout(() => {
-            trashList.style.display = 'none';
-            trashListVisible = false;
-        }, 400);
-    }
-}
-
-// ÍÏ×§»Ö¸´£¨Ö§³Ö´Ó trash-list ÍÏ×§£©
-whiteboard.addEventListener('dragover', function (e) {
-    if (deletedNotesArr.length === 0) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-});
-whiteboard.addEventListener('drop', function (e) {
-    if (deletedNotesArr.length === 0) return;
-    e.preventDefault();
-    let idx = e.dataTransfer.getData('text/plain');
-    idx = parseInt(idx);
-    if (isNaN(idx) || idx < 0 || idx >= deletedNotesArr.length) return;
-    restoreNote(idx, e.clientX, e.clientY);
-});
-
-// À¬»øÍ°Ö§³ÖÍÏ×§É¾³ý
-trashBin.addEventListener('dragover', function (e) {
-    // ÔÊÐíÍÏÈë
-    if (currentNote) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    }
-});
-
-trashBin.addEventListener('drop', function (e) {
-    if (currentNote && whiteboard.contains(currentNote)) {
-        e.preventDefault();
-        // É¾³ý¶¯»­
-        const noteToDelete = currentNote;
-        currentNote = null; // Á¢¼´Çå¿Õ£¬·ÀÖ¹¶à´Î´¥·¢
-        noteToDelete.style.transform = 'scale(0.9)';
-        noteToDelete.style.opacity = '0.5';
-        setTimeout(() => {
-            // ÔÙ´ÎÅÐ¶Ï½ÚµãÓÐÐ§ÐÔ
-            if (noteToDelete && whiteboard.contains(noteToDelete)) {
-                deletedNotesArr.push({
-                    html: noteToDelete.outerHTML,
-                    top: noteToDelete.style.top,
-                    left: noteToDelete.style.left
-                });
-                whiteboard.removeChild(noteToDelete);
-                deletedNotes++;
-                trashCount.textContent = deletedNotes;
-                updateTrashList();
-            }
-        }, 200);
-    }
-});
 }
 
 window.initTrashBin = initTrashBin;
