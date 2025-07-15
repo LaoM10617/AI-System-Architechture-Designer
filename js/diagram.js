@@ -127,7 +127,7 @@ function initDiagram() {
                         mermaidDiv.textContent = data.diagram;
                         mermaidContainer.appendChild(mermaidDiv);
 
-                        // ��ʼ��Mermaid
+                        // 初始化Mermaid
                         mermaid.initialize({
                             startOnLoad: true,
                             theme: 'default',
@@ -138,36 +138,25 @@ function initDiagram() {
                         });
                         mermaid.init(undefined, mermaidDiv);
 
-                        // �Ŵ���
-                        mermaidDiv.addEventListener('click', function () {
+                        // 延迟确保svg已渲染
+                        setTimeout(() => {
                             const svg = mermaidDiv.querySelector('svg');
-                            if (!svg) return;
-                            const overlay = document.createElement('div');
-                            overlay.style.position = 'fixed';
-                            overlay.style.top = 0;
-                            overlay.style.left = 0;
-                            overlay.style.width = '100vw';
-                            overlay.style.height = '100vh';
-                            overlay.style.background = 'rgba(0,0,0,0.7)';
-                            overlay.style.zIndex = 9999;
-                            overlay.style.display = 'flex';
-                            overlay.style.alignItems = 'center';
-                            overlay.style.justifyContent = 'center';
-                            overlay.style.cursor = 'zoom-out';
-                            // ��¡svg
-                            const bigSvg = svg.cloneNode(true);
-                            bigSvg.style.background = '#fff';
-                            bigSvg.style.maxWidth = '90vw';
-                            bigSvg.style.maxHeight = '90vh';
-                            bigSvg.style.boxShadow = '0 8px 40px rgba(0,0,0,0.5)';
-                            overlay.appendChild(bigSvg);
-                            overlay.addEventListener('click', function () {
-                                document.body.removeChild(overlay);
-                            });
-                            document.body.appendChild(overlay);
-                        });
+                            if (svg && typeof svgPanZoom === 'function') {
+                                svgPanZoom(svg, {
+                                    zoomEnabled: true,
+                                    controlIconsEnabled: true,
+                                    fit: true,
+                                    center: true,
+                                    minZoom: 0.5,
+                                    maxZoom: 10,
+                                    panEnabled: true,
+                                    dblClickZoomEnabled: true,
+                                    mouseWheelZoomEnabled: true
+                                });
+                            }
+                        }, 500);
 
-                        // ���ع���
+                        // 下载svg功能不变
                         setTimeout(() => {
                             const svg = mermaidDiv.querySelector('svg');
                             if (svg) {
