@@ -11,6 +11,9 @@ function initCollaboration() {
     document.getElementById('listSessionsBtn').addEventListener('click', listActiveSessions);
 
     setupCursorTracking();
+
+    // 初始化拖拽功能
+    makeCollabPanelDraggable();
 }
 
 function generateUserId() {
@@ -566,37 +569,41 @@ document.addEventListener('DOMContentLoaded', initCollaboration);
 // Add to collaboration.js or main.js
 function makeCollabPanelDraggable() {
     const container = document.getElementById('collabPanelContainer');
+    if (!container) return; // 容错保护
     let isDragging = false;
     let offsetX, offsetY;
 
+    // 恢复上次保存的位置
+    loadPanelPosition();
+    container.style.zIndex = 1001;
+    container.style.cursor = 'move';
+
     // Mouse down handler
     container.addEventListener('mousedown', (e) => {
-        // Only start drag on header or empty space
-        if (e.target.closest('.collab-header') || e.target === container) {
-            isDragging = true;
-            offsetX = e.clientX - container.getBoundingClientRect().left;
-            offsetY = e.clientY - container.getBoundingClientRect().top;
-            container.style.cursor = 'grabbing';
-        }
+        // 屏蔽交互控件
+        const interactiveTags = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
+        if (interactiveTags.includes(e.target.tagName)) return;
+        // 允许整个面板拖动（不再只限header或空白）
+        isDragging = true;
+        offsetX = e.clientX - container.getBoundingClientRect().left;
+        offsetY = e.clientY - container.getBoundingClientRect().top;
+        container.style.cursor = 'grabbing';
     });
 
     // Mouse move handler
     document.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
-        
         const x = e.clientX - offsetX;
         const y = e.clientY - offsetY;
-        
-        // Boundary checking (optional)
         const maxX = window.innerWidth - container.offsetWidth;
         const maxY = window.innerHeight - container.offsetHeight;
-        
         container.style.left = `${Math.min(Math.max(0, x), maxX)}px`;
         container.style.top = `${Math.min(Math.max(0, y), maxY)}px`;
     });
 
     // Mouse up handler
     document.addEventListener('mouseup', () => {
+        if (isDragging) savePanelPosition();
         isDragging = false;
         container.style.cursor = 'move';
     });
@@ -608,41 +615,21 @@ function makeCollabPanelDraggable() {
         offsetX = touch.clientX - container.getBoundingClientRect().left;
         offsetY = touch.clientY - container.getBoundingClientRect().top;
     });
-
     document.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
         const touch = e.touches[0];
         const x = touch.clientX - offsetX;
         const y = touch.clientY - offsetY;
-        
-        container.style.left = `${x}px`;
-        container.style.top = `${y}px`;
+        const maxX = window.innerWidth - container.offsetWidth;
+        const maxY = window.innerHeight - container.offsetHeight;
+        container.style.left = `${Math.min(Math.max(0, x), maxX)}px`;
+        container.style.top = `${Math.min(Math.max(0, y), maxY)}px`;
     });
-
     document.addEventListener('touchend', () => {
+        if (isDragging) savePanelPosition();
         isDragging = false;
     });
 }
-
-// Initialize when DOM loads
-document.addEventListener('DOMContentLoaded', makeCollabPanelDraggable);
-
-// Modify the mousedown handler
-container.addEventListener('mousedown', (e) => {
-    // Don't start drag if clicking on interactive elements
-    const interactiveElements = ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
-    if (interactiveElements.includes(e.target.tagName)) {
-        return;
-    }
-    
-    // Only start drag on header or empty space
-    if (e.target.closest('.collab-header') || e.target === container) {
-        isDragging = true;
-        offsetX = e.clientX - container.getBoundingClientRect().left;
-        offsetY = e.clientY - container.getBoundingClientRect().top;
-        container.style.cursor = 'grabbing';
-    }
-});
 
 // Add to drag handlers
 function savePanelPosition() {
@@ -666,6 +653,3 @@ function loadPanelPosition() {
 
 // Call loadPanelPosition() when initializing
 // Call savePanelPosition() when mouseup/touchend
-
-// Add to mousedown/touchstart handlers
-container.style.zIndex = 1001; // Higher than other elements

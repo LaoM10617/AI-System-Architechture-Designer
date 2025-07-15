@@ -110,12 +110,13 @@ h1 {
 }
 
 .draggable-collab-container {
-    position: absolute;
-    top: 100px; /* Initial position */
+    position: fixed;          /* 改为固定定位，坐标相对窗口 */
+    top: 100px;               /* 初始位置 */
     left: 20px;
     z-index: 1000; /* Ensure it stays above other elements */
     cursor: move;
     user-select: none; /* Prevent text selection while dragging */
+    transition: transform 0.05s ease-out; /* 轻微平滑 */
 }
 
 
