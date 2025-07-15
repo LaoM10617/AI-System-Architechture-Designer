@@ -64,7 +64,19 @@ async def generate_diagram(req: RequestBody):
     # Then convert to Mermaid diagram
     diagram_prompt = f"""
     你是一个软件架构专家，请将以下系统架构描述转化为 mermaid.js 的流程图（graph TD 格式），
-    只返回代码块，请不要返回```mermaid以及```，不需要任何解释。
+    只返回代码块，请不要返回```mermaid以及```，不需要任何解释。生成的代码箭头指向不能太凌乱。
+    代码必须能在 Mermaid Live Editor 正确渲染。[]中必须打""，即["a"]
+    示例：
+    graph TD
+        A["Mobile App (iOS Android)"] --> B["API Gateway (Load Balancer)"]
+        B --> C["Matchmaking Service"]
+        B --> D["Game Server (WebSockets)"]
+        D --> E["Redis (PubSub, Cache)"]
+        D --> F["PostgreSQL (Persistent Data)"]
+        C --> D
+        C --> G["User Service (ProfilesAuth)"]
+        G --> F
+        G --> E
 
     架构描述如下：
     {architecture_text}

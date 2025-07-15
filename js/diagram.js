@@ -1,22 +1,22 @@
 function initDiagram() {
-    // ĞŞ¸ÄÉú³É diagram Âß¼­
+    // ï¿½Ş¸ï¿½ï¿½ï¿½ï¿½ï¿½ diagram ï¿½ß¼ï¿½
 
     generateDiagramBtn.addEventListener('click', async function () {
-        console.log('Generate Diagram button clicked!'); // µ÷ÊÔĞÅÏ¢
+        console.log('Generate Diagram button clicked!'); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 
-        // ¼ì²éÊÇ·ñÒÑ¾­ÌîĞ´ÁË±ØÒªµÄ±íµ¥ĞÅÏ¢
+        // ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½Ğ´ï¿½Ë±ï¿½Òªï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
         const appType = document.getElementById('appType').value;
         const userCount = document.getElementById('userCount').value;
         const projectDesc = document.getElementById('projectDesc').value;
 
-        console.log('Form values:', { appType, userCount, projectDesc }); // µ÷ÊÔĞÅÏ¢
+        console.log('Form values:', { appType, userCount, projectDesc }); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 
         if (!appType || !userCount || !projectDesc.trim()) {
-            alert('ÇëÏÈÌîĞ´Ó¦ÓÃÀàĞÍ¡¢ÓÃ»§ÊıÁ¿ºÍÏîÄ¿ÃèÊö£¬È»ºóÔÙÉú³ÉÍ¼±í');
+            alert('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ´Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½Í¡ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½');
             return;
         }
 
-        // ÊÕ¼¯Ñ¡ÖĞµÄ¹¦ÄÜ - ĞŞ¸´Ñ¡ÔñÆ÷
+        // ï¿½Õ¼ï¿½Ñ¡ï¿½ĞµÄ¹ï¿½ï¿½ï¿½ - ï¿½Ş¸ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½
         const features = [];
         for (let i = 1; i <= 8; i++) {
             if (document.getElementById('feature' + i).checked) {
@@ -24,18 +24,18 @@ function initDiagram() {
             }
         }
 
-        console.log('Selected features:', features); // µ÷ÊÔĞÅÏ¢
+        console.log('Selected features:', features); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
 
-        // ÏÔÊ¾¼ÓÔØ¶¯»­
+        // ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Ø¶ï¿½ï¿½ï¿½
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = '<div class="spinner"></div>';
         whiteboard.appendChild(overlay);
 
         try {
-            console.log('Sending request to backend...'); // µ÷ÊÔĞÅÏ¢
+            console.log('Sending request to backend...'); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
             const notes = [];
-            // ¿ÉÑ¡£ºÊÕ¼¯±ãÇ©ÄÚÈİ£¬ºÍ¼Ü¹¹Éú³É±£³ÖÒ»ÖÂ
+            // ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½Ç©ï¿½ï¿½ï¿½İ£ï¿½ï¿½Í¼Ü¹ï¿½ï¿½ï¿½ï¿½É±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
             // const notes = Array.from(document.querySelectorAll(".note"))
             //     .map(note => note.innerText.trim())
             //     .filter(text => text !== "");
@@ -49,23 +49,24 @@ function initDiagram() {
                     appType: appType,
                     features: features,
                     userCount: userCount,
-                    notes: notes // ĞÂÔönotes×Ö¶Î£¬ºó¶Ë±ØĞè
+                    notes: notes // ï¿½ï¿½ï¿½ï¿½notesï¿½Ö¶Î£ï¿½ï¿½ï¿½Ë±ï¿½ï¿½ï¿½
                 })
             });
 
             const data = await response.json();
-            console.log('Response received:', data); // µ÷ÊÔĞÅÏ¢
+            console.log('Response received:', data); // åŸæœ‰
+            console.log('Mermaid code from AI:', data.diagram); // æ–°å¢ï¼Œè¾“å‡ºAIè¿”å›çš„mermaidä»£ç 
 
-            // ÒÆ³ı¼ÓÔØ¶¯»­
+            // Æ³Ø¶
             whiteboard.removeChild(overlay);
 
-            // ÒÆ³ıÖ®Ç°µÄ diagram ±ãÀûÌù
+            // ï¿½Æ³ï¿½Ö®Ç°ï¿½ï¿½ diagram ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             if (diagramNoteRef && whiteboard.contains(diagramNoteRef)) {
                 whiteboard.removeChild(diagramNoteRef);
                 diagramNoteRef = null;
             }
 
-            // ´´½¨Ò»¸öĞÂµÄNoteÏÔÊ¾Í¼Ê¾ÎÄ±¾£¬°üº¬ÇĞ»»°´Å¥
+            // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Âµï¿½Noteï¿½ï¿½Ê¾Í¼Ê¾ï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ»ï¿½ï¿½ï¿½Å¥
             const diagramNote = document.createElement('div');
             diagramNote.className = 'note result-note';
             diagramNote.style.top = '500px';
@@ -87,12 +88,12 @@ function initDiagram() {
                               <pre style="font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin: 0; padding: 10px; background: #f8f9fa; border-radius: 5px; max-height: 300px; overflow: auto;">${data.diagram}</pre>
                           </div>
                           <div class="mermaid-container" id="mermaidContainer">
-                              <!-- MermaidÍ¼±í½«ÔÚÕâÀïäÖÈ¾ -->
+                              <!-- MermaidÍ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¾ -->
                           </div>
                           <button class="toggle-view-btn" id="toggleViewBtn">
                               <i class="fas fa-eye"></i> View Diagram
                           </button>
-                          <button class="favorite-btn-in-footer" title="ÊÕ²Ø"><i class="far fa-star"></i></button>
+                          <button class="favorite-btn-in-footer" title="ï¿½Õ²ï¿½"><i class="far fa-star"></i></button>
                           <div id="diagramActions" style="margin-top:10px; text-align:center;"></div>
                       </div>
                     `;
@@ -100,33 +101,33 @@ function initDiagram() {
             addNoteEvents(diagramNote);
             diagramNoteRef = diagramNote;
 
-            // Ìí¼ÓÇĞ»»°´Å¥ÊÂ¼ş
+            // ï¿½ï¿½ï¿½ï¿½ï¿½Ğ»ï¿½ï¿½ï¿½Å¥ï¿½Â¼ï¿½
             const toggleBtn = diagramNote.querySelector('#toggleViewBtn');
             const codeContainer = diagramNote.querySelector('.code-container');
             const mermaidContainer = diagramNote.querySelector('#mermaidContainer');
 
             toggleBtn.addEventListener('click', function () {
                 if (mermaidContainer.classList.contains('show')) {
-                    // ÇĞ»»µ½´úÂëÊÓÍ¼
+                    // ï¿½Ğ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼
                     mermaidContainer.classList.remove('show');
                     codeContainer.classList.remove('hide');
                     toggleBtn.innerHTML = '<i class="fas fa-eye"></i> View Diagram';
                     toggleBtn.classList.remove('active');
                 } else {
-                    // ÇĞ»»µ½Í¼±íÊÓÍ¼
+                    // ï¿½Ğ»ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½Í¼
                     codeContainer.classList.add('hide');
                     mermaidContainer.classList.add('show');
                     toggleBtn.innerHTML = '<i class="fas fa-code"></i> View Code';
                     toggleBtn.classList.add('active');
 
-                    // äÖÈ¾MermaidÍ¼±í
+                    // ï¿½ï¿½È¾MermaidÍ¼ï¿½ï¿½
                     if (!mermaidContainer.querySelector('.mermaid')) {
                         const mermaidDiv = document.createElement('div');
                         mermaidDiv.className = 'mermaid';
                         mermaidDiv.textContent = data.diagram;
                         mermaidContainer.appendChild(mermaidDiv);
 
-                        // ³õÊ¼»¯Mermaid
+                        // ï¿½ï¿½Ê¼ï¿½ï¿½Mermaid
                         mermaid.initialize({
                             startOnLoad: true,
                             theme: 'default',
@@ -137,7 +138,7 @@ function initDiagram() {
                         });
                         mermaid.init(undefined, mermaidDiv);
 
-                        // ·Å´ó¹¦ÄÜ
+                        // ï¿½Å´ï¿½ï¿½ï¿½
                         mermaidDiv.addEventListener('click', function () {
                             const svg = mermaidDiv.querySelector('svg');
                             if (!svg) return;
@@ -153,7 +154,7 @@ function initDiagram() {
                             overlay.style.alignItems = 'center';
                             overlay.style.justifyContent = 'center';
                             overlay.style.cursor = 'zoom-out';
-                            // ¿ËÂ¡svg
+                            // ï¿½ï¿½Â¡svg
                             const bigSvg = svg.cloneNode(true);
                             bigSvg.style.background = '#fff';
                             bigSvg.style.maxWidth = '90vw';
@@ -166,7 +167,7 @@ function initDiagram() {
                             document.body.appendChild(overlay);
                         });
 
-                        // ÏÂÔØ¹¦ÄÜ
+                        // ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½
                         setTimeout(() => {
                             const svg = mermaidDiv.querySelector('svg');
                             if (svg) {
@@ -182,10 +183,10 @@ function initDiagram() {
                 }
             });
 
-            // ±£´æµ½ÀúÊ·
+            // ï¿½ï¿½ï¿½æµ½ï¿½ï¿½Ê·
             diagramHistory.push({ content: data.diagram });
 
-            // Èç¹ûAPI·µ»ØÁË¼Ü¹¹ÃèÊö£¬¸üĞÂ½á¹û±ãÇ©
+            // ï¿½ï¿½ï¿½APIï¿½ï¿½ï¿½ï¿½ï¿½Ë¼Ü¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½ï¿½Ç©
             if (data.architecture) {
                 const resultNote = document.getElementById('resultNote');
                 if (resultNote) {
@@ -196,10 +197,10 @@ function initDiagram() {
                 }
             }
         } catch (err) {
-            console.error('Error in generateDiagramBtn:', err); // µ÷ÊÔĞÅÏ¢
+            console.error('Error in generateDiagramBtn:', err); // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
             whiteboard.removeChild(overlay);
-            alert('Á÷³ÌÍ¼Éú³É·şÎñÁ¬½ÓÊ§°Ü£¬ÇëÈ·ÈÏºó¶Ë·şÎñÒÑÆô¶¯²¢ÔÊĞí±¾µØ·ÃÎÊ¡£');
-            console.error('Éú³ÉÁ÷³ÌÍ¼ÇëÇóÊ§°Ü:', err);
+            alert('ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½É·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½È·ï¿½Ïºï¿½Ë·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø·ï¿½ï¿½Ê¡ï¿½');
+            console.error('ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½:', err);
         }
     });
 }
