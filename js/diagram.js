@@ -1,22 +1,22 @@
 function initDiagram() {
-    // �޸����� diagram �߼�
+    // 修改后的 diagram 逻辑
 
     generateDiagramBtn.addEventListener('click', async function () {
-        console.log('Generate Diagram button clicked!'); // ������Ϣ
+        console.log('Generate Diagram button clicked!'); // 调试信息
 
-        // ����Ƿ��Ѿ���д�˱�Ҫ�ı�����Ϣ
+        // 检查是否已经填写了必要的文本信息
         const appType = document.getElementById('appType').value;
         const userCount = document.getElementById('userCount').value;
         const projectDesc = document.getElementById('projectDesc').value;
 
-        console.log('Form values:', { appType, userCount, projectDesc }); // ������Ϣ
+        console.log('Form values:', { appType, userCount, projectDesc }); // 调试信息
 
         if (!appType || !userCount || !projectDesc.trim()) {
-            alert('������дӦ�����͡��û���������Ŀ������Ȼ��������ͼ��');
+            alert('请填写应用类型、用户数量和项目描述后生成架构图！');
             return;
         }
 
-        // �ռ�ѡ�еĹ��� - �޸�ѡ����
+        // 收集选中的功能 - 修改选择器
         const features = [];
         for (let i = 1; i <= 8; i++) {
             if (document.getElementById('feature' + i).checked) {
@@ -24,21 +24,17 @@ function initDiagram() {
             }
         }
 
-        console.log('Selected features:', features); // ������Ϣ
+        console.log('Selected features:', features); // 调试信息
 
-        // ��ʾ���ض���
+        // 显示加载动画
         const overlay = document.createElement('div');
         overlay.className = 'loading-overlay';
         overlay.innerHTML = '<div class="spinner"></div>';
         whiteboard.appendChild(overlay);
 
         try {
-            console.log('Sending request to backend...'); // ������Ϣ
+            console.log('Sending request to backend...'); // 调试信息
             const notes = [];
-            // ��ѡ���ռ���ǩ���ݣ��ͼܹ����ɱ���һ��
-            // const notes = Array.from(document.querySelectorAll(".note"))
-            //     .map(note => note.innerText.trim())
-            //     .filter(text => text !== "");
             const response = await fetch('http://127.0.0.1:8000/generate_diagram', {
                 method: 'POST',
                 headers: {
@@ -49,7 +45,7 @@ function initDiagram() {
                     appType: appType,
                     features: features,
                     userCount: userCount,
-                    notes: notes // ����notes�ֶΣ���˱���
+                    notes: notes // 添加notes字段，可空
                 })
             });
 
@@ -57,16 +53,16 @@ function initDiagram() {
             console.log('Response received:', data); // 原有
             console.log('Mermaid code from AI:', data.diagram); // 新增，输出AI返回的mermaid代码
 
-            // Ƴض
+            // 移除加载动画
             whiteboard.removeChild(overlay);
 
-            // �Ƴ�֮ǰ�� diagram ������
+            // 移除之前的 diagram 内容
             if (diagramNoteRef && whiteboard.contains(diagramNoteRef)) {
                 whiteboard.removeChild(diagramNoteRef);
                 diagramNoteRef = null;
             }
 
-            // ����һ���µ�Note��ʾͼʾ�ı��������л���ť
+            // 创建一个新的Note显示图示内容，带有切换按钮
             const diagramNote = document.createElement('div');
             diagramNote.className = 'note result-note';
             diagramNote.style.top = '500px';
@@ -102,209 +98,302 @@ function initDiagram() {
             addNoteEvents(diagramNote);
             diagramNoteRef = diagramNote;
 
-            // �����л���ť�¼�
+            // 为切换按钮添加事件
             const toggleBtn = diagramNote.querySelector('#toggleViewBtn');
             const codeContainer = diagramNote.querySelector('.code-container');
             const mermaidContainer = diagramNote.querySelector('#mermaidContainer');
+            const codePre = diagramNote.querySelector('pre');
 
+            // 创建上下文菜单
+            const contextMenu = document.createElement('div');
+            contextMenu.className = 'custom-context-menu';
+            contextMenu.innerHTML = `
+                <ul>
+                    <li id="viewSource">View Source Code</li>
+                    <li id="editDiagram">Edit Diagram</li>
+                </ul>
+            `;
+            contextMenu.style.display = 'none';
+            document.body.appendChild(contextMenu);
+
+            // 全局点击隐藏菜单
+            document.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+            });
+
+            // 存储当前的panZoom实例
+            let currentPanZoom = null;
+
+            // 渲染Mermaid图表函数
+            const renderMermaidDiagram = async () => {
+                // 获取当前Mermaid代码
+                const currentMermaidCode = codePre.textContent;
+                
+                // 移除现有的mermaid div
+                let mermaidDiv = mermaidContainer.querySelector('.mermaid');
+                if (mermaidDiv) {
+                    mermaidContainer.removeChild(mermaidDiv);
+                }
+                
+                // 创建新的mermaid div
+                mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = currentMermaidCode;
+                mermaidContainer.appendChild(mermaidDiv);
+                
+                // 保存当前的缩放和平移状态
+                let zoomState = null;
+                if (currentPanZoom) {
+                    zoomState = {
+                        zoom: currentPanZoom.getZoom(),
+                        pan: currentPanZoom.getPan()
+                    };
+                }
+
+                // 初始化Mermaid
+                mermaid.initialize({
+                    startOnLoad: true,
+                    theme: 'default',
+                    flowchart: {
+                        useMaxWidth: false,
+                        htmlLabels: true,
+                        width: 800,
+                        height: 600
+                    }
+                });
+                
+                try {
+                    // 渲染图表
+                    await mermaid.init(undefined, mermaidDiv);
+                    
+                    // 等待SVG渲染完成
+                    setTimeout(() => {
+                        const svg = mermaidDiv.querySelector('svg');
+                        if (svg && typeof svgPanZoom === 'function') {
+                            // 初始化pan/zoom
+                            currentPanZoom = svgPanZoom(svg, {
+                                zoomEnabled: true,
+                                controlIconsEnabled: true,
+                                fit: true,
+                                center: true,
+                                minZoom: 0.5,
+                                maxZoom: 10,
+                                panEnabled: true,
+                                dblClickZoomEnabled: true,
+                                mouseWheelZoomEnabled: true
+                            });
+
+                            // 恢复之前的缩放状态
+                            if (zoomState) {
+                                currentPanZoom.zoom(zoomState.zoom);
+                                currentPanZoom.pan(zoomState.pan);
+                            }
+
+                            // 添加上下文菜单事件
+                            svg.addEventListener('contextmenu', function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                contextMenu.style.display = 'block';
+                                contextMenu.style.left = `${e.clientX}px`;
+                                contextMenu.style.top = `${e.clientY}px`;
+                                
+                                const clickedElement = e.target.closest('[id]') || e.target.closest('g');
+                                contextMenu.dataset.clickedElement = clickedElement ? clickedElement.id || '' : '';
+                                
+                                return false;
+                            });
+                            
+                            // 阻止默认右键菜单
+                            svg.addEventListener('mousedown', function(e) {
+                                if (e.button === 2) {
+                                    e.stopPropagation();
+                                }
+                            });
+                            
+                            // 其他事件阻止
+                            svg.addEventListener('mousedown', function(e) {
+                                e.stopPropagation();
+                            });
+                            svg.addEventListener('mousemove', function(e) {
+                                e.stopPropagation();
+                            });
+                            svg.addEventListener('mouseup', function(e) {
+                                e.stopPropagation();
+                            });
+                            
+                            // 调整控制按钮位置
+                            setTimeout(() => {
+                                const controls = svg.parentElement.querySelector('.svg-pan-zoom-controls');
+                                if (controls) {
+                                    controls.style.right = '10px';
+                                    controls.style.left = 'auto';
+                                    controls.style.zIndex = '9999';
+                                    controls.style.position = 'absolute';
+                                    controls.style.top = '1px';
+                                    controls.style.display = 'block';
+                                    controls.style.visibility = 'visible';
+                                }
+                            }, 200);
+                        }
+
+                        // 更新下载链接
+                        const serializer = new XMLSerializer();
+                        const svgStr = serializer.serializeToString(svg);
+                        const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const actionsDiv = diagramNote.querySelector('#diagramActions');
+                        actionsDiv.innerHTML = `<a href="${url}" download="diagram.svg" style="display:inline-block;padding:6px 16px;background:#2196f3;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">download SVG</a>`;
+                    }, 100);
+                } catch (error) {
+                    console.error('Mermaid rendering error:', error);
+                    mermaidDiv.innerHTML = `<div class="mermaid-error">Error rendering diagram: ${error.message}</div>`;
+                }
+            };
+
+            // 切换按钮事件
             toggleBtn.addEventListener('click', function () {
                 if (mermaidContainer.classList.contains('show')) {
-                    // �л���������ͼ
+                    // 切换到代码视图
                     mermaidContainer.classList.remove('show');
                     codeContainer.classList.remove('hide');
                     toggleBtn.innerHTML = '<i class="fas fa-eye"></i> View Diagram';
                     toggleBtn.classList.remove('active');
                 } else {
-                    // �л���ͼ����ͼ
+                    // 切换到图表视图
                     codeContainer.classList.add('hide');
                     mermaidContainer.classList.add('show');
                     toggleBtn.innerHTML = '<i class="fas fa-code"></i> View Code';
                     toggleBtn.classList.add('active');
 
-                    // ��ȾMermaidͼ��
-                    if (!mermaidContainer.querySelector('.mermaid')) {
-                        const mermaidDiv = document.createElement('div');
-                        mermaidDiv.className = 'mermaid';
-                        mermaidDiv.textContent = data.diagram;
-                        mermaidContainer.appendChild(mermaidDiv);
-                        
-                        // 为mermaid容器添加事件阻止，防止触发便签拖动
-                        mermaidContainer.addEventListener('mousedown', function(e) {
-                            e.stopPropagation();
-                        });
-                        mermaidContainer.addEventListener('mousemove', function(e) {
-                            e.stopPropagation();
-                        });
-                        mermaidContainer.addEventListener('mouseup', function(e) {
-                            e.stopPropagation();
-                        });
-                        
-                        // 添加双击放大功能
-                        mermaidContainer.addEventListener('dblclick', function(e) {
-                            // 如果双击的是控制按钮，不放大
-                            if (e.target.closest('.svg-pan-zoom-controls')) {
-                                return;
-                            }
-                            
-                            // 创建全屏显示
-                            const fullscreen = document.createElement('div');
-                            fullscreen.className = 'mermaid-fullscreen';
-                            fullscreen.innerHTML = `
-                                <div class="mermaid-container show">
-                                    <div class="mermaid">
-                                        ${data.diagram}
-                                    </div>
-                                </div>
-                            `;
-                            
-                            document.body.appendChild(fullscreen);
-                            
-                            // 重新初始化mermaid
-                            mermaid.initialize({
-                                startOnLoad: true,
-                                theme: 'default',
-                                flowchart: {
-                                    useMaxWidth: false,
-                                    htmlLabels: true,
-                                    width: 1200,
-                                    height: 800
-                                }
-                            });
-                            mermaid.init(undefined, fullscreen.querySelector('.mermaid'));
-                            
-                            // 延迟确保svg已渲染，然后初始化svg-pan-zoom
-                            setTimeout(() => {
-                                const fullscreenSvg = fullscreen.querySelector('svg');
-                                if (fullscreenSvg && typeof svgPanZoom === 'function') {
-                                    const fullscreenPanZoom = svgPanZoom(fullscreenSvg, {
-                                        zoomEnabled: true,
-                                        controlIconsEnabled: true,
-                                        fit: true,
-                                        center: true,
-                                        minZoom: 0.5,
-                                        maxZoom: 10,
-                                        panEnabled: true,
-                                        dblClickZoomEnabled: true,
-                                        mouseWheelZoomEnabled: true
-                                    });
-                                    
-
-                                    
-
-                                    
-                                    // 调整全屏模式下的控制按钮位置
-                                    setTimeout(() => {
-                                        const controls = fullscreenSvg.parentElement.querySelector('.svg-pan-zoom-controls');
-                                        if (controls) {
-                                            controls.style.right = '20px';
-                                            controls.style.left = 'auto';
-                                            controls.style.top = '20px';
-                                            controls.style.zIndex = '9999';
-                                            controls.style.position = 'absolute';
-                                            controls.style.display = 'block';
-                                            controls.style.visibility = 'visible';
-                                        }
-                                    }, 200);
-                                }
-                            }, 500);
-                            
-                            // 点击全屏背景关闭
-                            fullscreen.addEventListener('click', function(e) {
-                                if (e.target === fullscreen) {
-                                    document.body.removeChild(fullscreen);
-                                }
-                            });
-                            
-                            // ESC键关闭
-                            const escHandler = function(e) {
-                                if (e.key === 'Escape') {
-                                    document.body.removeChild(fullscreen);
-                                    document.removeEventListener('keydown', escHandler);
-                                }
-                            };
-                            document.addEventListener('keydown', escHandler);
-                        });
-
-                        // 初始化Mermaid
-                        mermaid.initialize({
-                            startOnLoad: true,
-                            theme: 'default',
-                            flowchart: {
-                                useMaxWidth: false,
-                                htmlLabels: true,
-                                width: 800,
-                                height: 600
-                            }
-                        });
-                        mermaid.init(undefined, mermaidDiv);
-
-                        // 延迟确保svg已渲染
-                        setTimeout(() => {
-                            const svg = mermaidDiv.querySelector('svg');
-                            if (svg && typeof svgPanZoom === 'function') {
-                                // 在svg上添加事件监听器，阻止事件冒泡到便签
-                                svg.addEventListener('mousedown', function(e) {
-                                    e.stopPropagation();
-                                });
-                                svg.addEventListener('mousemove', function(e) {
-                                    e.stopPropagation();
-                                });
-                                svg.addEventListener('mouseup', function(e) {
-                                    e.stopPropagation();
-                                });
-                                
-                                const panZoom = svgPanZoom(svg, {
-                                    zoomEnabled: true,
-                                    controlIconsEnabled: true,
-                                    fit: true,
-                                    center: true,
-                                    minZoom: 0.5,
-                                    maxZoom: 10,
-                                    panEnabled: true,
-                                    dblClickZoomEnabled: true,
-                                    mouseWheelZoomEnabled: true
-                                });
-                                
-
-                                
-
-                                
-                                // 调整控制按钮位置到右边
-                                setTimeout(() => {
-                                    const controls = svg.parentElement.querySelector('.svg-pan-zoom-controls');
-                                    if (controls) {
-                                        controls.style.right = '10px';
-                                        controls.style.left = 'auto';
-                                        controls.style.zIndex = '9999';
-                                        controls.style.position = 'absolute';
-                                        controls.style.top = '1px';
-                                        controls.style.display = 'block';
-                                        controls.style.visibility = 'visible';
-                                    }
-                                }, 200);
-                            }
-                        }, 500);
-
-                        // 下载svg功能不变
-                        setTimeout(() => {
-                            const svg = mermaidDiv.querySelector('svg');
-                            if (svg) {
-                                const serializer = new XMLSerializer();
-                                const svgStr = serializer.serializeToString(svg);
-                                const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-                                const url = URL.createObjectURL(blob);
-                                const actionsDiv = diagramNote.querySelector('#diagramActions');
-                                actionsDiv.innerHTML = `<a href="${url}" download="diagram.svg" style="display:inline-block;padding:6px 16px;background:#2196f3;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">download SVG</a>`;
-                            }
-                        }, 500);
-                    }
+                    // 每次切换都重新渲染图表
+                    renderMermaidDiagram();
                 }
             });
 
-            // ���浽��ʷ
+            // 双击放大功能
+            mermaidContainer.addEventListener('dblclick', function(e) {
+                if (e.target.closest('.svg-pan-zoom-controls')) {
+                    return;
+                }
+                
+                const currentMermaidCode = codePre.textContent;
+                const fullscreen = document.createElement('div');
+                fullscreen.className = 'mermaid-fullscreen';
+                fullscreen.innerHTML = `
+                    <div class="mermaid-container show">
+                        <div class="mermaid">
+                            ${currentMermaidCode}
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(fullscreen);
+                
+                mermaid.init(undefined, fullscreen.querySelector('.mermaid')).then(() => {
+                    setTimeout(() => {
+                        const fullscreenSvg = fullscreen.querySelector('svg');
+                        if (fullscreenSvg && typeof svgPanZoom === 'function') {
+                            const fullscreenPanZoom = svgPanZoom(fullscreenSvg, {
+                                zoomEnabled: true,
+                                controlIconsEnabled: true,
+                                fit: true,
+                                center: true,
+                                minZoom: 0.5,
+                                maxZoom: 10,
+                                panEnabled: true,
+                                dblClickZoomEnabled: true,
+                                mouseWheelZoomEnabled: true
+                            });
+                            
+                            setTimeout(() => {
+                                const controls = fullscreenSvg.parentElement.querySelector('.svg-pan-zoom-controls');
+                                if (controls) {
+                                    controls.style.right = '20px';
+                                    controls.style.left = 'auto';
+                                    controls.style.top = '20px';
+                                    controls.style.zIndex = '9999';
+                                    controls.style.position = 'absolute';
+                                    controls.style.display = 'block';
+                                    controls.style.visibility = 'visible';
+                                }
+                            }, 200);
+                        }
+                    }, 500);
+                });
+                
+                fullscreen.addEventListener('click', function(e) {
+                    if (e.target === fullscreen) {
+                        document.body.removeChild(fullscreen);
+                    }
+                });
+                
+                const escHandler = function(e) {
+                    if (e.key === 'Escape') {
+                        document.body.removeChild(fullscreen);
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+            });
+
+            // 阻止事件冒泡
+            mermaidContainer.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+            });
+            mermaidContainer.addEventListener('mousemove', function(e) {
+                e.stopPropagation();
+            });
+            mermaidContainer.addEventListener('mouseup', function(e) {
+                e.stopPropagation();
+            });
+
+            // 上下文菜单事件
+            contextMenu.querySelector('#viewSource').addEventListener('click', function() {
+                mermaidContainer.classList.remove('show');
+                codeContainer.classList.remove('hide');
+                toggleBtn.innerHTML = '<i class="fas fa-eye"></i> View Diagram';
+                toggleBtn.classList.remove('active');
+                contextMenu.style.display = 'none';
+            });
+
+            contextMenu.querySelector('#editDiagram').addEventListener('click', function() {
+                const editDialog = document.createElement('div');
+                editDialog.className = 'edit-mermaid-dialog';
+                editDialog.innerHTML = `
+                    <div class="edit-dialog-content">
+                        <h3>Edit Mermaid Diagram</h3>
+                        <textarea id="mermaidEditor" style="width:100%; height:300px; font-family: monospace;">${codePre.textContent}</textarea>
+                        <div class="dialog-buttons">
+                            <button id="cancelEdit">Cancel</button>
+                            <button id="applyEdit">Apply Changes</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(editDialog);
+                contextMenu.style.display = 'none';
+
+                editDialog.querySelector('#cancelEdit').addEventListener('click', function() {
+                    document.body.removeChild(editDialog);
+                });
+
+                editDialog.querySelector('#applyEdit').addEventListener('click', function() {
+                    const newMermaidCode = editDialog.querySelector('#mermaidEditor').value;
+                    codePre.textContent = newMermaidCode;
+                    
+                    // 如果当前显示的是图表，重新渲染
+                    if (mermaidContainer.classList.contains('show')) {
+                        renderMermaidDiagram();
+                    }
+                    
+                    document.body.removeChild(editDialog);
+                });
+            });
+
+            // 保存到历史
             diagramHistory.push({ content: data.diagram });
 
-            // ���API�����˼ܹ����������½����ǩ
+            // 如果API返回了架构建议，创建新的便签
             if (data.architecture) {
                 const resultNote = document.getElementById('resultNote');
                 if (resultNote) {
@@ -315,10 +404,10 @@ function initDiagram() {
                 }
             }
         } catch (err) {
-            console.error('Error in generateDiagramBtn:', err); // ������Ϣ
+            console.error('Error in generateDiagramBtn:', err); // 调试信息
             whiteboard.removeChild(overlay);
-            alert('����ͼ���ɷ�������ʧ�ܣ���ȷ�Ϻ�˷������������������ط��ʡ�');
-            console.error('��������ͼ����ʧ��:', err);
+            alert('架构图生成服务暂时不可用，请确认后端服务可访问后重试。');
+            console.error('生成架构图失败:', err);
         }
     });
 }
