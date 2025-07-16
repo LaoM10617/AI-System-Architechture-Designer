@@ -212,6 +212,48 @@ function addNoteEvents(note) {
                 }
             });
     }
+
+    // 添加右下角resize手柄
+    if (!note.querySelector('.resize-handle')) {
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize-handle';
+        resizeHandle.style.position = 'absolute';
+        resizeHandle.style.right = '2px';
+        resizeHandle.style.bottom = '2px';
+        resizeHandle.style.width = '16px';
+        resizeHandle.style.height = '16px';
+        resizeHandle.style.cursor = 'nwse-resize';
+        resizeHandle.style.background = 'rgba(0,0,0,0.08)';
+        resizeHandle.style.borderRadius = '4px';
+        resizeHandle.style.zIndex = '20';
+        note.appendChild(resizeHandle);
+
+        let resizing = false;
+        let startX, startY, startW, startH;
+        resizeHandle.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            resizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startW = note.offsetWidth;
+            startH = note.offsetHeight;
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!resizing) return;
+            const minW = 180, minH = 80;
+            let newW = Math.max(minW, startW + (e.clientX - startX));
+            let newH = Math.max(minH, startH + (e.clientY - startY));
+            note.style.width = newW + 'px';
+            note.style.height = newH + 'px';
+        });
+        document.addEventListener('mouseup', function() {
+            if (resizing) {
+                resizing = false;
+                document.body.style.userSelect = '';
+            }
+        });
+    }
 }
 
 // 拖拽开始
