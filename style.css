@@ -811,6 +811,9 @@ button {
     min-height: 350px;
     max-height: 600px;
     z-index: 20;
+    display: flex;
+    flex-direction: column;
+    position: relative;
 }
 
     .result-note .note-content {
@@ -818,8 +821,11 @@ button {
         font-size: 0.9rem;
         white-space: pre-wrap;
         flex: 1;
-        max-height: 300px; /* 结果便签内容区域的最大高度 */
+        min-height: 100px;
+        max-height: calc(100% - 48px); /* 内容区最大高度与便签高度同步，底部留空间 */
         overflow-y: auto;
+        padding-bottom: 48px; /* 留出底部空间，避免被按钮遮挡 */
+        box-sizing: border-box;
     }
 
     /* =========================
