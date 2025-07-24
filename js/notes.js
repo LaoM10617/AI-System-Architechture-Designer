@@ -64,7 +64,18 @@ function addNoteEvents(note) {
     });
     // 拖拽功能（自定义拖动，便签本身不设置draggable）
     note.removeAttribute('draggable');
-    note.addEventListener('mousedown', startDrag);
+    // 允许整个 note 区域拖动
+    note.addEventListener('mousedown', function(e) {
+        // 避免在编辑内容、点击按钮等时触发拖动
+        if (
+            e.target.classList.contains('note-action') ||
+            (e.target.classList.contains('note-title') && e.target.isContentEditable) ||
+            (e.target.classList.contains('note-content') && e.target.isContentEditable)
+        ) {
+            return;
+        }
+        startDrag.call(this, e);
+    });
     // 删除按钮支持原生拖拽到垃圾桶
     deleteBtn.setAttribute('draggable', 'true');
     deleteBtn.addEventListener('dragstart', function (e) {
@@ -254,11 +265,16 @@ function addNoteEvents(note) {
             }
         });
     }
+    // 在addNoteEvents内，给note设置负的marginTop，使其能拖到whiteboard最上方
+    const paddingTop = parseInt(window.getComputedStyle(whiteboard).paddingTop, 10) || 0;
+    note.style.marginTop = `-${paddingTop}px`;
 }
+
+// 在 addNoteEvents 外部定义
+let dragStartX, dragStartY, noteStartLeft, noteStartTop;
 
 // 拖拽开始
 function startDrag(e) {
-    // 删除按钮、标题或内容正在编辑时不触发拖拽
     if (
         e.target.classList.contains('note-action') ||
         (e.target.classList.contains('note-title') && e.target.isContentEditable) ||
@@ -267,9 +283,13 @@ function startDrag(e) {
         return;
     }
     isDragging = true;
-    currentNote = this; // 绑定到整个note
-    offsetX = e.clientX - currentNote.getBoundingClientRect().left;
-    offsetY = e.clientY - currentNote.getBoundingClientRect().top;
+    currentNote = this;
+    // 记录鼠标初始位置
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    // 记录 note 当前的 left/top 数值（去掉 px）
+    noteStartLeft = parseInt(currentNote.style.left, 10) || 0;
+    noteStartTop = parseInt(currentNote.style.top, 10) || 0;
 
     currentNote.style.zIndex = '100';
     document.addEventListener('mousemove', dragNote);
@@ -279,17 +299,21 @@ function startDrag(e) {
 // 拖拽中
 function dragNote(e) {
     if (!isDragging) return;
-
     const whiteboardRect = whiteboard.getBoundingClientRect();
-    const x = e.clientX - offsetX - whiteboardRect.left;
-    const y = e.clientY - offsetY - whiteboardRect.top;
-
+    // 鼠标移动的差值
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    // 新位置
+    let newLeft = noteStartLeft + dx;
+    let newTop = noteStartTop + dy;
     // 边界检查
-    const maxX = whiteboardRect.width - currentNote.offsetWidth;
-    const maxY = whiteboardRect.height - currentNote.offsetHeight;
-
-    currentNote.style.left = `${Math.max(0, Math.min(x, maxX))}px`;
-    currentNote.style.top = `${Math.max(0, Math.min(y, maxY))}px`;
+    const maxX = whiteboard.offsetWidth - currentNote.offsetWidth;
+    const maxY = whiteboard.offsetHeight - currentNote.offsetHeight;
+    const minY = 0;
+    newLeft = Math.max(0, Math.min(newLeft, maxX));
+    newTop = Math.max(minY, Math.min(newTop, maxY));
+    currentNote.style.left = `${newLeft}px`;
+    currentNote.style.top = `${newTop}px`;
 }
 
 // 拖拽结束

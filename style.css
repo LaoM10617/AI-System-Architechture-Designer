@@ -731,6 +731,9 @@ button {
     }
 
 .note-header {
+    pointer-events: auto !important;
+    z-index: 1000;
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
