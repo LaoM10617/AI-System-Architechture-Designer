@@ -4,7 +4,7 @@
 # A lightweight AI-Powered System Architecture Design Assistant
 
 
-A lightweight, interactive tool that helps users design software system architectures through AI-powered suggestions, visual diagrams, and notes edition.
+A lightweight, interactive tool that helps users design software system architectures through AI-powered suggestions, visual diagrams, and notes editing.
 
 ![Modern Dashboard](https://github.com/user-attachments/assets/5ea5c398-fe19-4f75-a9ab-4fb2ee87a267)
 
@@ -41,6 +41,15 @@ This application provides a whiteboard-style interface where users can:
 - Mermaid.js diagram creation from architectural descriptions
 - Multiple-choice question generation to clarify project requirements
 - Note content suggestions based on existing context
+
+
+## Recent Updates
+
+### MCQ Generation
+![](docs/images/MCQ.png)
+
+### Diagram Generation and Editing
+![](docs/Diagram_Generation_and_Editing.gif)
 
 
 ## Installation & Setup
