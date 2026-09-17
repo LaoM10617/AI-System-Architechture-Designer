@@ -1,22 +1,24 @@
-# run.py
+import shutil
 import subprocess
-import threading
-import os
-import time
+from pathlib import Path
+
 import uvicorn
 
-def run_node_server():
-    # Change to the directory where server.js is located if needed
-    subprocess.run(["node", "js/server.js"])
-
-def run_fastapi():
-    uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
 
 if __name__ == "__main__":
-    # Start Node.js server in a separate thread
-    node_thread = threading.Thread(target=run_node_server)
-    node_thread.daemon = True
-    node_thread.start()
-    
-    # Start FastAPI server in the main thread
-    run_fastapi()
+    root = Path(__file__).resolve().parent
+    pnpm = shutil.which("pnpm") or shutil.which("pnpm.cmd")
+    if not pnpm:
+        raise SystemExit("pnpm was not found. Install Node.js and pnpm, then run: pnpm --dir frontend install")
+
+    frontend = subprocess.Popen([pnpm, "--dir", str(root / "frontend"), "dev", "--host", "127.0.0.1"])
+    try:
+        print("Frontend: http://127.0.0.1:5173")
+        print("Backend:  http://127.0.0.1:8000")
+        uvicorn.run("backend:app", host="127.0.0.1", port=8000, reload=False)
+    finally:
+        frontend.terminate()
+        try:
+            frontend.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            frontend.kill()
