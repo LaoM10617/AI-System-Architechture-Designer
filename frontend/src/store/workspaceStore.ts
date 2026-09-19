@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createContext, useContext } from "react";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { Diagram, GenerationBasis, MCQData, Note, OverallResult, ProjectInput, Workspace } from "../types/domain";
 import { HISTORY_LIMIT, migrateWorkspace } from "./overallResult";
@@ -55,6 +56,10 @@ const initialProject: ProjectInput = {
 };
 
 interface WorkspaceActions {
+  previewEditing: { id: string; code: string } | null;
+  architectureEdit: { id: string; text: string } | null;
+  setPreviewEditing: (value: { id: string; code: string } | null) => void;
+  setArchitectureEdit: (value: { id: string; text: string } | null) => void;
   setDecisionStatus: (id: string, status: "draft" | "confirmed") => void;
   commitOverall: (result: { architecture: string; diagram: string; basis: GenerationBasis | null; source?: OverallResult["source"] }) => void;
   restoreResult: (id: string) => void;
@@ -73,15 +78,19 @@ interface WorkspaceActions {
 
 type WorkspaceStore = Workspace & WorkspaceActions;
 
-export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => ({
-  project: initialProject,
-  notes: initialNotes.map((note) => ({ ...note, decisionStatus: "draft" })),
+export const createWorkspaceStore = (storageKey: string, empty = false) => create<WorkspaceStore>()(persist((set, get) => ({
+  project: structuredClone(empty ? { ...initialProject, prompt: "", features: [] } : initialProject),
+  notes: empty ? [] : initialNotes.map((note) => ({ ...structuredClone(note), decisionStatus: "draft" })),
   diagrams: [],
   favorites: [],
   trash: [],
   overall: null,
   resultHistory: [],
   legacyArchive: [],
+  previewEditing: null,
+  architectureEdit: null,
+  setPreviewEditing: (previewEditing) => set({ previewEditing }),
+  setArchitectureEdit: (architectureEdit) => set({ architectureEdit }),
 
   setDecisionStatus: (id, decisionStatus) => set((state) => ({
     notes: state.notes.map((note) => note.id === id ? { ...note, decisionStatus } : note),
@@ -184,12 +193,25 @@ export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => 
     };
   }),
 }), {
-  name: "ai-architecture-designer-workspace",
+  name: storageKey,
   version: 3,
   migrate: migrateWorkspace,
   storage: createJSONStorage(() => localStorage),
   // Persist domain data only; request controllers and transient UI stay in memory.
-  partialize: ({ project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive }) => ({
+  partialize: ({ project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive, previewEditing, architectureEdit }) => ({
     project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive,
+    // Local editor recovery only: not part of SQLite snapshots or saved versions.
+    previewEditing, architectureEdit,
   }),
 }));
+
+export type WorkspaceInstance = ReturnType<typeof createWorkspaceStore>;
+export const WorkspaceContext = createContext<WorkspaceInstance | null>(null);
+export function useWorkspaceInstance() {
+  const store = useContext(WorkspaceContext);
+  if (!store) throw new Error("Workspace requires a project container");
+  return store;
+}
+export function useWorkspaceStore<T = WorkspaceStore>(selector: (state: WorkspaceStore) => T = (state) => state as unknown as T): T {
+  return useWorkspaceInstance()(selector);
+}

@@ -118,6 +118,92 @@ class StorageTests(unittest.TestCase):
         self.assertCountEqual(outcomes, [2, "revision_conflict"])
         self.assertEqual(len(db.versions(self.project_id, 100, None)), 2)
 
+    def test_two_projects_save_restore_and_request_isolation(self):
+        other_id = str(uuid4())
+        other = f"/api/projects/{other_id}"
+        # The same request ID is valid in different projects.
+        created = self.client.post("/api/projects", json={**self.create, "project_id": other_id, "name": "Project B"})
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual({p["id"] for p in self.client.get("/api/projects").json()}, {self.project_id, other_id})
+        shared_request = str(uuid4())
+        originals = {}
+        for base, label in ((self.base, "A"), (other, "B")):
+            save = {"request_id": shared_request, "expected_revision": 0,
+                    "snapshot": {"project": {"prompt": label}, "notes": [{"content": label}]}}
+            response = self.client.put(base + "/workspace", json=save)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(self.client.put(base + "/workspace", json=save).json(), response.json())
+            result = self.client.post(base + "/versions", json={**self.version_request(1), "architecture": label})
+            self.assertEqual(result.status_code, 201)
+            originals[base] = result.json()["overall"]["id"]
+        b_before = self.client.get(other + "/workspace").json()
+        restored = self.client.post(self.base + f"/versions/{originals[self.base]}/restore", json={
+            "request_id": str(uuid4()), "expected_revision": 2})
+        self.assertEqual(restored.status_code, 201)
+        self.assertEqual(restored.json()["overall"]["architecture"], "A")
+        self.assertEqual(self.client.get(other + "/workspace").json(), b_before)
+        # A has revision 3, B still accepts its own revision 2.
+        response = self.client.post(other + f"/versions/{originals[other]}/restore", json={
+            "request_id": str(uuid4()), "expected_revision": 2})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["overall"]["architecture"], "B")
+        self.assertEqual(self.client.get(other + f"/versions/{originals[self.base]}").status_code, 404)
+        before = self.client.get(other + "/workspace").json()
+        response = self.client.post(other + f"/versions/{originals[self.base]}/restore", json={
+            "request_id": str(uuid4()), "expected_revision": 3})
+        self.assertEqual(response.json()["error"]["code"], "version_not_found")
+        foreign_pointer = {"request_id": str(uuid4()), "expected_revision": 3,
+                           "snapshot": before["snapshot"], "current_version_id": originals[self.base]}
+        self.assertEqual(self.client.put(other + "/sync", json=foreign_pointer).status_code, 422)
+        self.assertEqual(self.client.get(other + "/workspace").json(), before)
+        for base, label in ((self.base, "A"), (other, "B")):
+            state = self.client.get(base + "/workspace").json()
+            self.assertEqual(state["snapshot"]["notes"], [{"content": label}])
+            self.assertEqual(len(self.client.get(base + "/versions").json()), 2)
+
+    def test_rename_is_transactional_revision_checked_and_idempotent(self):
+        before = self.client.get(self.base + "/workspace").json()
+        rename = {"request_id": str(uuid4()), "expected_revision": 0, "name": "  Renamed project  "}
+        with closing(sqlite3.connect(self.path, isolation_level=None)) as db:
+            db.execute("CREATE TRIGGER fail_rename BEFORE INSERT ON write_requests BEGIN SELECT RAISE(ABORT, 'test'); END")
+        self.assertEqual(self.client.patch(self.base, json=rename).status_code, 503)
+        self.assertEqual(self.client.get(self.base + "/workspace").json(), before)
+        with closing(sqlite3.connect(self.path, isolation_level=None)) as db:
+            db.execute("DROP TRIGGER fail_rename")
+        response = self.client.patch(self.base, json=rename)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["revision"], 1)
+        self.assertEqual(self.client.patch(self.base, json=rename).json(), response.json())
+        self.assertEqual(self.client.patch(self.base, json={**rename, "name": "Different"}).json()["error"]["code"], "idempotency_conflict")
+        self.assertEqual(self.client.patch(self.base, json={**rename, "request_id": str(uuid4())}).json()["error"]["code"], "revision_conflict")
+        self.assertEqual(self.client.patch(self.base, json={**rename, "name": " \t "}).status_code, 422)
+        self.assertEqual(self.client.post("/api/projects", json={**self.create, "name": " "}).status_code, 422)
+        after = self.client.get(self.base + "/workspace").json()
+        self.assertEqual(after["project_record"]["name"], "Renamed project")
+        self.assertEqual(self.client.get("/api/projects").json()[0]["name"], "Renamed project")
+        for key in ("snapshot", "overall", "result_history", "current_version_id"):
+            self.assertEqual(after[key], before[key])
+
+    def test_missing_project_never_falls_back(self):
+        missing = f"/api/projects/{uuid4()}"
+        before = self.client.get(self.base + "/workspace").json()
+        version_id = str(uuid4())
+        snapshot = {"request_id": str(uuid4()), "expected_revision": 0, "snapshot": self.create["snapshot"]}
+        responses = [
+            self.client.get(missing + "/workspace"),
+            self.client.get(missing + "/versions"),
+            self.client.get(missing + f"/versions/{version_id}"),
+            self.client.put(missing + "/workspace", json=snapshot),
+            self.client.put(missing + "/sync", json=snapshot),
+            self.client.patch(missing, json={"request_id": str(uuid4()), "expected_revision": 0, "name": "Missing"}),
+            self.client.post(missing + "/versions", json=self.version_request()),
+            self.client.post(missing + f"/versions/{version_id}/restore", json={"request_id": str(uuid4()), "expected_revision": 0}),
+        ]
+        for response in responses:
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.json()["error"]["code"], "project_not_found")
+        self.assertEqual(self.client.get(self.base + "/workspace").json(), before)
+
     def test_transactional_import_and_bundle_retry(self):
         project_id = str(uuid4())
         version = {"id": "legacy-original-id", "version": 1, "createdAt": "2026-09-19T00:00:00Z",

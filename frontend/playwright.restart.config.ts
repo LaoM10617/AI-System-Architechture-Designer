@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./restart-tests",
+  outputDir: "../.refactor-logs/restart-test-results",
   timeout: 90_000,
   workers: 1,
   retries: 0,

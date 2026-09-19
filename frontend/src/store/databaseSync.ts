@@ -1,32 +1,35 @@
 import { create } from "zustand";
+import { createContext, useContext } from "react";
 import { ApiError, request } from "../api/client";
 import type { OverallResult, Workspace } from "../types/domain";
-import { useWorkspaceStore } from "./workspaceStore";
+import type { WorkspaceInstance } from "./workspaceStore";
 
 type Phase = "loading" | "choose" | "recovery" | "ready" | "dirty" | "saving" | "error" | "conflict";
 type Snapshot = Omit<Workspace, "overall" | "resultHistory">;
 interface Bundle { request_id: string; expected_revision: number; schema_version: number; snapshot: Snapshot; versions: OverallResult[]; current_version_id: string | null }
 interface Receipt { project_id: string; revision: number }
 interface DbVersion extends Omit<OverallResult, "createdAt"> { created_at: string }
-interface ProjectIdentity { id: string; name: string }
+export interface ProjectIdentity { id: string; name: string }
 interface Loaded { project_id: string; project_record: ProjectIdentity; snapshot: Snapshot; revision: number; overall: DbVersion | null; result_history: DbVersion[] }
 interface Pending { projectId: string; data: Workspace; revision: number; versions?: OverallResult[]; flight?: { path: string; method: string; body: unknown; data: Workspace } }
-export const useDatabaseSync = create<{ phase: Phase; message: string; projects: ProjectIdentity[]; activeProject: ProjectIdentity | null; loaded: boolean }>(() => ({ phase: "loading", message: "Loading local database…", projects: [], activeProject: null, loaded: false }));
+export function createDatabaseSync(useWorkspaceStore: WorkspaceInstance, initialId: string) {
+const useDatabaseSync = create<{ phase: Phase; message: string; projects: ProjectIdentity[]; activeProject: ProjectIdentity | null; loaded: boolean }>(() => ({ phase: "loading", message: "Loading local database…", projects: [], activeProject: null, loaded: false }));
 const set = useDatabaseSync.setState;
 const CACHE = "ai-architecture-designer-workspace";
-const BINDING = "ai-architecture-designer-project";
 const PREFIX = "ai-architecture-designer-recovery-";
 let tabId = sessionStorage.getItem("architecture-tab-id");
 if (!tabId) { tabId = crypto.randomUUID(); sessionStorage.setItem("architecture-tab-id", tabId); }
-const recoveryKey = PREFIX + tabId;
+const recoveryKey = PREFIX + tabId + "-" + (initialId || crypto.randomUUID());
 let recoveredKey = recoveryKey;
-let projectId = localStorage.getItem(BINDING) ?? "";
+let projectId = initialId;
 let revision = 0;
 let pending: Pending | null = null;
 let saved = "";
 let started = false;
 let applying = false;
 let busy = false;
+let saving: Promise<void> | null = null;
+let disposed = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const versions = new Map<string, OverallResult>();
 
@@ -60,8 +63,11 @@ function failed(error: unknown) {
 const convert = (item: DbVersion): OverallResult => ({ id: item.id, version: item.version, createdAt: item.created_at,
   architecture: item.architecture, diagram: item.diagram, basis: item.basis, source: item.source });
 
-export async function loadProject(id: string) {
-  if (busy) return;
+async function loadProject(id: string) {
+  if (busy || disposed) return;
+  if (projectId && projectId !== id) throw new Error("A project controller cannot load a different project");
+  busy = true;
+  clearTimeout(timer);
   set({ phase: "loading", message: "Loading database workspace…" });
   try {
     backup();
@@ -69,6 +75,7 @@ export async function loadProject(id: string) {
     if (loaded.project_id !== id || loaded.project_record.id !== id) throw new Error("Database returned a different project. Workspace was not replaced.");
     const value: Workspace = { ...loaded.snapshot, overall: loaded.overall ? convert(loaded.overall) : null, resultHistory: loaded.result_history.map(convert) };
     applying = true;
+    useWorkspaceStore.persist.setOptions({ name: `ai-architecture-designer-workspace-${id}` });
     useWorkspaceStore.setState(value);
     applying = false;
     projectId = id; revision = loaded.revision; versions.clear();
@@ -77,33 +84,44 @@ export async function loadProject(id: string) {
       const draft = localStorage.getItem(key);
       if (draft) { localStorage.setItem(`ai-architecture-designer-backup-${crypto.randomUUID()}`, draft); localStorage.removeItem(key); }
     }
-    localStorage.setItem(BINDING, id);
     // Recovery data is deliberately retained as a backup when choosing database data.
     set({ phase: "ready", loaded: true, activeProject: loaded.project_record, message: "Saved to SQLite" });
   } catch (error) { applying = false; failed(error); }
+  finally { busy = false; }
 }
 
-export async function importLocal() {
+async function importLocal(name = "Existing project") {
   if (busy) return;
+  if (projectId) throw new Error("Import requires a new project controller");
+  started = true;
   try {
     backup();
     const recovery = pending;
     if (recovery) localStorage.setItem(`ai-architecture-designer-backup-${crypto.randomUUID()}`, JSON.stringify(recovery));
     projectId = crypto.randomUUID(); revision = 0; versions.clear();
+    useWorkspaceStore.persist.setOptions({ name: `ai-architecture-designer-workspace-${projectId}` });
     for (const item of recovery?.versions ?? []) versions.set(item.id, item);
     const value = pending?.data ?? data();
     applying = true; useWorkspaceStore.setState(value); applying = false;
-    const body = { ...bundle(value), project_id: projectId, name: "Existing project" };
+    const body = { ...bundle(value), project_id: projectId, name };
+    // Keep failed creations discoverable on refresh, even before the first receipt.
+    set({ activeProject: { id: projectId, name } });
     const { expected_revision: _revision, ...creation } = body;
     pending = { projectId, data: value, revision, flight: { path: "/projects/import", method: "POST", body: creation, data: value } };
     persistPending();
-    localStorage.setItem(BINDING, projectId);
     await flush();
   } catch (error) { failed(error); }
 }
 
-export async function flush() {
-  if (busy || !pending) return;
+function flush(): Promise<void> {
+  if (saving) return saving;
+  if (busy || !pending || disposed) return Promise.resolve();
+  // All callers, including close, await the same in-flight save and queued edits.
+  saving = savePending().finally(() => { saving = null; });
+  return saving;
+}
+
+async function savePending() {
   busy = true;
   set({ phase: "saving", message: "Saving to SQLite…" });
   try {
@@ -113,8 +131,8 @@ export async function flush() {
       persistPending(); // Retain the exact request ID/payload across timeouts and reloads.
       const flight = pending.flight;
       const receipt = await call<Receipt>(flight.path, flight.method, flight.body);
-      revision = receipt.revision; projectId = receipt.project_id;
-      localStorage.setItem(BINDING, projectId);
+      if (receipt.project_id !== projectId) throw new Error("Save response belongs to a different project");
+      revision = receipt.revision;
       set((state) => {
         const creation = flight.body as { name?: string };
         const identity = state.projects.find((item) => item.id === projectId)
@@ -135,41 +153,55 @@ export async function flush() {
   finally { busy = false; }
 }
 
-export async function recoverLocal() {
-  if (!pending) return;
+async function recoverLocal() {
+  if (!pending || busy || disposed) return;
   projectId = pending.projectId; revision = pending.revision;
+  useWorkspaceStore.persist.setOptions({ name: `ai-architecture-designer-workspace-${projectId}` });
   for (const item of pending.versions ?? []) versions.set(item.id, item);
   applying = true; useWorkspaceStore.setState(pending.data); applying = false;
   set({ loaded: true });
   await flush();
 }
 
-export async function retryDatabase() {
-  if (pending) await flush();
+async function retryDatabase() {
+  if (pending) { if (!useDatabaseSync.getState().loaded) await recoverLocal(); else await flush(); }
   else if (projectId) await loadProject(projectId);
   else { started = false; await startDatabase(); }
 }
 
-export async function startDatabase() {
+async function startDatabase() {
   if (started) return;
   started = true;
   try {
-    const projects = await call<{ id: string; name: string }[]>("/projects");
-    set({ projects });
-    // Prefer this tab's recovery. Other tabs' records remain separately preserved.
+    // Inspect recovery before network access: an offline database must not hide drafts.
     const keys = Object.keys(localStorage).filter((key) => key.startsWith(PREFIX));
     const key = localStorage.getItem(recoveryKey) ? recoveryKey : keys.find((key) => {
-      try { return JSON.parse(localStorage.getItem(key)!).projectId === projectId; } catch { return false; }
+      try { return JSON.parse(localStorage.getItem(key)!).projectId === projectId || (!projectId && key === PREFIX + tabId); } catch { return false; }
     });
     if (key) {
-      pending = JSON.parse(localStorage.getItem(key)!); recoveredKey = key;
+      const candidate: Pending = JSON.parse(localStorage.getItem(key)!);
+      if (!candidate || (projectId && candidate.projectId !== projectId) || !candidate.data || !Number.isInteger(candidate.revision)) throw new Error("Invalid project recovery record; original data retained.");
+      const flight = candidate.flight;
+      if (flight && !((flight.path === `/projects/${candidate.projectId}/sync` && flight.method === "PUT")
+        || (flight.path === "/projects/import" && flight.method === "POST" && (flight.body as { project_id?: string }).project_id === candidate.projectId))) throw new Error("Recovery request does not belong to this project; original data retained.");
+      pending = candidate; recoveredKey = key; projectId = candidate.projectId;
+      const name = (flight?.body as { name?: string } | undefined)?.name ?? "Recovered project";
+      set({ activeProject: { id: projectId, name } });
       set({ phase: "recovery", message: "Unsaved local changes were found. Recover them or load the database copy." });
-    } else if (projectId && projects.some((item) => item.id === projectId)) await loadProject(projectId);
+    }
+    const hadRecovery = !!pending;
+    const projects = await call<ProjectIdentity[]>("/projects");
+    if (disposed) return;
+    set({ projects });
+    if (hadRecovery) {
+      const identity = projects.find((item) => item.id === projectId);
+      if (identity) set({ activeProject: identity });
+    } else if (projectId) await loadProject(projectId);
     else set({ phase: "choose", message: "Choose a saved project or import this browser's workspace into SQLite." });
   } catch (error) { failed(error); }
 }
 
-useWorkspaceStore.subscribe((state, previous) => {
+const unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
   if (applying || !useDatabaseSync.getState().loaded) return;
   const value = data();
   if (!pending && JSON.stringify(value) === saved) return;
@@ -183,9 +215,26 @@ useWorkspaceStore.subscribe((state, previous) => {
   clearTimeout(timer);
   timer = setTimeout(() => { void flush(); }, newVersion ? 0 : 1000);
 });
-window.addEventListener("beforeunload", (event) => {
-  if (pending) { event.preventDefault(); event.returnValue = ""; }
-});
-window.addEventListener("pagehide", () => { if (pending) persistPending(); });
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  const { overall, architectureEdit, previewEditing } = useWorkspaceStore.getState();
+  if (pending || (overall && ((architectureEdit?.id === overall.id && architectureEdit.text !== overall.architecture)
+    || (previewEditing?.id === overall.id && previewEditing.code !== overall.diagram)))) { event.preventDefault(); event.returnValue = ""; }
+};
+const pageHide = () => { if (pending) persistPending(); };
+window.addEventListener("beforeunload", beforeUnload);
+window.addEventListener("pagehide", pageHide);
 
-export function currentProjectId() { return projectId; }
+return { store: useDatabaseSync, loadProject, importLocal, flush, recoverLocal, retryDatabase, startDatabase,
+  currentProjectId: () => projectId, data: () => pending?.data ?? data(),
+  canClose: () => !busy && !pending && useDatabaseSync.getState().phase !== "recovery",
+  dispose: () => { disposed = true; clearTimeout(timer); unsubscribe(); window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("pagehide", pageHide); },
+};
+}
+
+export type DatabaseController = ReturnType<typeof createDatabaseSync>;
+export const DatabaseContext = createContext<DatabaseController | null>(null);
+export function useDatabaseController() {
+  const controller = useContext(DatabaseContext);
+  if (!controller) throw new Error("Database requires a project container");
+  return controller;
+}

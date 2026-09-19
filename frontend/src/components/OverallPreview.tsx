@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useWorkspaceStore } from "../store/workspaceStore";
 import { generationBasis, isResultStale } from "../store/overallResult";
 import { MermaidViewer } from "./MermaidViewer";
@@ -12,8 +11,7 @@ export function OverallPreview({ streaming }: { streaming: string | null }) {
   const stale = isResultStale(result, basis);
   const tab = useLayoutStore((state) => state.tab);
   const setTab = useLayoutStore((state) => state.setTab);
-  const [editing, setEditing] = useState<{ id: string; code: string } | null>(null);
-  const [architectureEdit, setArchitectureEdit] = useState<{ id: string; text: string } | null>(null);
+  const { previewEditing: editing, setPreviewEditing: setEditing, architectureEdit, setArchitectureEdit } = state;
   const editedCode = editing?.id === result?.id ? editing?.code : undefined;
   return (
     <section className="overall-preview" aria-label="Overall solution">
@@ -51,6 +49,7 @@ export function OverallPreview({ streaming }: { streaming: string | null }) {
           state.commitOverall({ ...result, diagram: editedCode, source: "edited" });
           setEditing(null);
         }}>Save diagram changes</button>}
+        {editedCode !== undefined && editedCode !== result.diagram && <button onClick={() => setEditing(null)}>Discard diagram edits</button>}
       </>}
       </div>
       {state.resultHistory.length > 0 && <details>

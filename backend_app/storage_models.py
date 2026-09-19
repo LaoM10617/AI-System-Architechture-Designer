@@ -1,9 +1,11 @@
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, StringConstraints
 
 from .schemas import StrictModel
+
+ProjectName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
 
 class WorkspaceSnapshot(StrictModel):
@@ -18,7 +20,7 @@ class WorkspaceSnapshot(StrictModel):
 class CreateProject(StrictModel):
     request_id: UUID
     project_id: UUID
-    name: str = Field(min_length=1, max_length=200)
+    name: ProjectName
     snapshot: WorkspaceSnapshot
     schema_version: int = Field(default=3, ge=1)
 
@@ -42,6 +44,10 @@ class SaveVersion(StrictModel):
 class RestoreVersion(StrictModel):
     request_id: UUID
     expected_revision: int = Field(ge=0)
+
+
+class RenameProject(RestoreVersion):
+    name: ProjectName
 
 
 class ProjectRecord(StrictModel):

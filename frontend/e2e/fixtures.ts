@@ -4,7 +4,10 @@ import { test as base, expect } from "@playwright/test";
 export const test = base.extend({
   page: async ({ page }, use) => {
     await page.addLocatorHandler(page.getByRole("button", { name: "Save browser workspace as new project" }), async () => {
-      await page.getByRole("button", { name: "Save browser workspace as new project" }).click();
+      // Recovery also offers "save as new"; don't accidentally clone that project.
+      const recovery = page.getByRole("button", { name: "Recover local changes" });
+      if (await recovery.isVisible()) await recovery.click();
+      else await page.getByRole("button", { name: "Save browser workspace as new project" }).click();
       await expect(page.locator(".database-status")).toContainText("Saved to SQLite");
     });
     await page.addLocatorHandler(page.getByRole("button", { name: "Recover local changes" }), async () => {

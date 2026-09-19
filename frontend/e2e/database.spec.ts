@@ -43,7 +43,7 @@ test("SQLite autosave, lost response retry, conflict, and fresh browser load", a
   expect(external.ok()).toBeTruthy();
   await note.fill("My conflicting draft");
   await expect(status).toContainText("Another page changed");
-  const cached = await page.evaluate(() => JSON.parse(localStorage.getItem("ai-architecture-designer-workspace")!).state);
+  const cached = await page.evaluate(() => JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state);
   expect(cached.notes[0].content).toBe("My conflicting draft");
   await page.getByRole("button", { name: "Load database: Existing project", exact: true }).click();
   await expect(status).toContainText("Saved to SQLite");

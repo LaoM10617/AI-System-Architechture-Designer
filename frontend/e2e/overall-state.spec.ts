@@ -4,9 +4,10 @@ test("domain migration, decision basis, and isolated rollback", async ({ page })
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "System Architecture Designer" })).toBeVisible();
   const result = await page.evaluate(async () => {
-    const storePath = "/src/store/workspaceStore.ts";
+    const storePath = "/src/components/ProjectShell.tsx";
     const helpersPath = "/src/store/overallResult.ts";
-    const { useWorkspaceStore: store } = await import(/* @vite-ignore */ storePath);
+    const { getProjectWorkspace } = await import(/* @vite-ignore */ storePath);
+    const store = getProjectWorkspace(localStorage.getItem("ai-architecture-designer-project"));
     const { generationBasis, isResultStale, migrateWorkspace } = await import(/* @vite-ignore */ helpersPath);
     const s = () => store.getState();
     const initialBasis = generationBasis(s());

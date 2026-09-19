@@ -32,7 +32,10 @@ test("demo path reaches architecture and diagram results", async ({ page }) => {
   expect((await userNote.boundingBox())!.height).toBeLessThan(55);
   await page.locator('article[data-target-id="target-audience"]').getByTitle("Favorite", { exact: true }).click();
   await page.locator('article[data-target-id="technical-requirements"]').getByTitle("Move to trash").click();
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("ai-architecture-designer-workspace")!).state);
+  const saved = await page.evaluate(() => {
+    const { previewEditing: _diagramDraft, architectureEdit: _architectureDraft, ...domain } = JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state;
+    return domain;
+  });
   expect(saved.diagrams).toHaveLength(0);
   expect(saved.overall.diagram).toBeTruthy();
   expect(saved.overall.basis.decisions).toEqual([]);
@@ -47,8 +50,9 @@ test("demo path reaches architecture and diagram results", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Edit source" })).toBeVisible();
   const restored = await page.evaluate(async () => {
     // Read the live store to verify hydration, not just the saved JSON.
-    const path = "/src/store/workspaceStore.ts";
-    const { useWorkspaceStore } = await import(/* @vite-ignore */ path);
+    const path = "/src/components/ProjectShell.tsx";
+    const { getProjectWorkspace } = await import(/* @vite-ignore */ path);
+    const useWorkspaceStore = getProjectWorkspace(localStorage.getItem("ai-architecture-designer-project"));
     const { project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive } = useWorkspaceStore.getState();
     return { project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive };
   });

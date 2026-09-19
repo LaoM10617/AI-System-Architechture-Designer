@@ -13,7 +13,7 @@ async function freePort(): Promise<number> {
   return port;
 }
 
-test("real frontend/backend restart preserves imported workspace and recovers failed saves", async ({ browser, request }) => {
+test("two projects survive real service restart, isolated version restore and failed saves", async ({ browser, request }) => {
   const root = resolve(process.cwd(), "..");
   const directory = await mkdtemp(join(tmpdir(), "architecture-restart-"));
   const dbPath = join(directory, "workspace.sqlite3");
@@ -94,6 +94,20 @@ test("real frontend/backend restart preserves imported workspace and recovers fa
     await page.getByRole("button", { name: "Generate Architecture", exact: true }).click();
     await expect(page.locator(".overall-preview h2")).toContainText("v2");
     await expect(page.locator(".database-status")).toContainText("Saved to SQLite");
+    await page.getByRole("textbox", { name: "New project name" }).fill("Project B restart acceptance");
+    await page.getByRole("button", { name: "New project", exact: true }).click();
+    await expect(page.locator(".database-status")).toContainText("Saved to SQLite");
+    await expect(page.getByTestId("project-identity")).toContainText("Project B restart acceptance");
+    const bId = await page.evaluate(() => localStorage.getItem("ai-architecture-designer-project"));
+    const bURL = `${backendURL}/api/projects/${bId}/workspace`;
+    await page.locator(".controls-section textarea").fill("Independent project B description");
+    await page.getByRole("button", { name: /Add Sticky Note/ }).click();
+    await page.locator("article.note textarea").fill("Independent B note");
+    await page.getByRole("button", { name: "Generate Architecture", exact: true }).click();
+    await expect(page.locator(".overall-preview h2")).toContainText("v1");
+    await expect(page.locator(".database-status")).toContainText("Saved to SQLite");
+    const savedB = await (await request.get(bURL)).json();
+    await page.getByRole("tab", { name: /Existing project/ }).click();
     await page.getByText("Previous versions (1)", { exact: true }).click();
     await page.getByRole("button", { name: "Restore v1", exact: true }).click();
     await expect(page.locator(".overall-preview h2")).toContainText("v3");
@@ -101,6 +115,7 @@ test("real frontend/backend restart preserves imported workspace and recovers fa
     const saved = await (await request.get(workspaceURL)).json();
     expect(saved.overall.architecture).toBe("Imported architecture");
     expect(saved.snapshot.notes[0].content).toBe("Saved before stopping both services");
+    expect(await (await request.get(bURL)).json()).toEqual(savedB);
     const previousPids = [backend!.pid, frontend!.pid];
     await context.close();
     await stop(frontend); await stop(backend);
@@ -117,6 +132,13 @@ test("real frontend/backend restart preserves imported workspace and recovers fa
     await expect(loaded.locator('article[data-target-id="user-note"] textarea')).toHaveValue("Saved before stopping both services");
     await expect(loaded.locator(".overall-architecture")).toHaveText("Imported architecture");
     expect(await (await request.get(workspaceURL)).json()).toEqual(saved);
+    await loaded.getByRole("button", { name: "Project list", exact: true }).click();
+    await loaded.getByRole("region", { name: "Saved projects" }).getByRole("button", { name: `Project B restart acceptance · ${bId!.slice(0, 8)}`, exact: true }).click();
+    await expect(loaded.locator(".controls-section textarea")).toHaveValue("Independent project B description");
+    await expect(loaded.locator("article.note textarea")).toHaveValue("Independent B note");
+    await expect(loaded.locator(".overall-architecture")).toHaveText(savedB.overall.architecture);
+    expect(await (await request.get(bURL)).json()).toEqual(savedB);
+    await loaded.getByRole("tab", { name: /Existing project/ }).click();
 
     await stop(backend); await offline(backendURL + "/health");
     await loaded.locator('article[data-target-id="user-note"] textarea').fill("Unsaved input survives real backend shutdown");
@@ -136,8 +158,9 @@ test("real frontend/backend restart preserves imported workspace and recovers fa
     expect(final.result_history).toEqual(saved.result_history);
     expect(final.snapshot.legacyArchive).toEqual(saved.snapshot.legacyArchive);
     expect(final.snapshot.favorites).toEqual(saved.snapshot.favorites);
+    expect(await (await request.get(bURL)).json()).toEqual(savedB);
     await fresh.close();
-    console.log("PASS: legacy import, save, both-process restart, fresh-browser restore, version rollback, real outage recovery");
+    console.log("PASS: legacy data preserved; A/B isolated; A rollback leaves B unchanged; both services restarted; fresh browser restores both projects; real outage recovery");
   } catch (error) {
     console.error(logs.slice(-5000));
     throw error;

@@ -1,10 +1,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import App from "./App";
+import { ProjectShell } from "./components/ProjectShell";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { ToastProvider } from "./ui/Toast";
-import { DatabaseGate } from "./components/DatabaseGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +17,7 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <DatabaseGate><App /></DatabaseGate>
+          <ProjectShell />
         </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>

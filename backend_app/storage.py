@@ -157,6 +157,7 @@ class Database:
 
     def version(self, project_id, version_id):
         with self.connection() as db:
+            self.require_workspace(db, project_id)
             row = db.execute("SELECT * FROM solution_versions WHERE project_id=? AND id=?", (project_id, version_id)).fetchone()
             if not row:
                 raise StorageError(404, "version_not_found", "Version not found")
@@ -185,6 +186,11 @@ class Database:
                 response = {"project_id": project_id, "revision": revision, "updated_at": timestamp}
                 if operation == "workspace":
                     db.execute("UPDATE workspaces SET snapshot=?,schema_version=?,revision=?,updated_at=? WHERE project_id=?", (encode(payload["snapshot"]), payload["schema_version"], revision, timestamp, project_id))
+                elif operation == "rename":
+                    # One revision sequence per project, shared by metadata and content.
+                    # Rename never rewrites the snapshot or touches result versions.
+                    db.execute("UPDATE projects SET name=? WHERE id=?", (payload["name"], project_id))
+                    db.execute("UPDATE workspaces SET revision=?,updated_at=? WHERE project_id=?", (revision, timestamp, project_id))
                 else:
                     if operation == "restore":
                         row = db.execute("SELECT * FROM solution_versions WHERE project_id=? AND id=?", (project_id, target)).fetchone()

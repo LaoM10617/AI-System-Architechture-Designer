@@ -6,8 +6,9 @@ for (const version of [1, 2]) {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "System Architecture Designer" })).toBeVisible();
     await page.evaluate(async (version) => {
-      const path = "/src/store/workspaceStore.ts";
-      const { useWorkspaceStore } = await import(/* @vite-ignore */ path);
+      const path = "/src/components/ProjectShell.tsx";
+      const { getProjectWorkspace } = await import(/* @vite-ignore */ path);
+      const useWorkspaceStore = getProjectWorkspace(localStorage.getItem("ai-architecture-designer-project"));
       const current = useWorkspaceStore.getState();
       const original = current.notes[0];
       const user = { ...original, id: "user", title: "My draft", decisionStatus: undefined };
@@ -27,7 +28,7 @@ for (const version of [1, 2]) {
     }, version);
     await page.reload();
     await expect(page.getByRole("heading", { name: "System Architecture Designer" })).toBeVisible();
-    const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem("ai-architecture-designer-workspace")!));
+    const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!));
     expect(migrated.version).toBe(3);
     expect(migrated.state.notes).toHaveLength(1);
     expect(migrated.state.notes[0].decisionStatus).toBe("draft");
@@ -41,12 +42,13 @@ for (const version of [1, 2]) {
     await page.locator(".bin-popover").getByRole("button", { name: "Open result" }).click();
     await expect(page.getByRole("button", { name: "Edit source" })).toBeVisible();
     await page.evaluate(async () => {
-      const path = "/src/store/workspaceStore.ts";
-      const { useWorkspaceStore } = await import(/* @vite-ignore */ path);
+      const path = "/src/components/ProjectShell.tsx";
+      const { getProjectWorkspace } = await import(/* @vite-ignore */ path);
+      const useWorkspaceStore = getProjectWorkspace(localStorage.getItem("ai-architecture-designer-project"));
       for (let i = 0; i < 12; i++) useWorkspaceStore.getState().commitOverall({ architecture: `New ${i}`, diagram: "", basis: null });
     });
     await page.reload();
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("ai-architecture-designer-workspace")!).state);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state);
     expect(saved.legacyArchive).toEqual(migrated.state.legacyArchive);
     expect(saved.favorites).toEqual(migrated.state.favorites);
     expect(saved.resultHistory).toHaveLength(10);

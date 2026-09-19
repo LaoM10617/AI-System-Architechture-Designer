@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query
 
 from .storage import Database
 from .storage_models import CreateProject, RestoreVersion, SaveVersion, SaveWorkspace, ProjectRecord, VersionRecord, WorkspaceRecord, WriteReceipt
-from .storage_models import ImportProject, SaveBundle
+from .storage_models import ImportProject, SaveBundle, RenameProject
 
 
 def storage_router(db: Database):
@@ -22,6 +22,10 @@ def storage_router(db: Database):
     @router.post("/import", status_code=201, response_model=WriteReceipt, response_model_exclude_none=True)
     def import_project(req: ImportProject):
         return db.save_bundle(str(req.project_id), req.model_dump(mode="json"), importing=True)
+
+    @router.patch("/{project_id}", response_model=WriteReceipt, response_model_exclude_none=True)
+    def rename(project_id: UUID, req: RenameProject):
+        return db.write(str(project_id), "rename", req.model_dump(mode="json"))
 
     @router.put("/{project_id}/sync", response_model=WriteReceipt, response_model_exclude_none=True)
     def sync(project_id: UUID, req: SaveBundle):

@@ -19,7 +19,7 @@ test("draft -> confirmed -> stale -> regenerate -> save version -> reload", asyn
   const freshness = page.locator(".result-freshness");
   const heading = page.locator(".overall-preview h2");
   const generate = page.getByRole("button", { name: "Generate Diagram", exact: true });
-  const snapshot = () => page.evaluate(() => JSON.parse(localStorage.getItem("ai-architecture-designer-workspace")!).state);
+  const snapshot = () => page.evaluate(() => JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state);
 
   await generate.click();
   await expect(heading).toContainText("v1");
@@ -75,8 +75,9 @@ test("draft -> confirmed -> stale -> regenerate -> save version -> reload", asyn
   await page.getByRole("button", { name: "Edit source", exact: true }).click();
   await expect(page.locator(".diagram-editor")).toHaveValue(savedCode);
   const hydrated = await page.evaluate(async () => {
-    const path = "/src/store/workspaceStore.ts";
-    const { useWorkspaceStore } = await import(/* @vite-ignore */ path);
+    const path = "/src/components/ProjectShell.tsx";
+    const { getProjectWorkspace } = await import(/* @vite-ignore */ path);
+    const useWorkspaceStore = getProjectWorkspace(localStorage.getItem("ai-architecture-designer-project"));
     const { overall, resultHistory, notes, project } = useWorkspaceStore.getState();
     return { overall, resultHistory, notes, project };
   });
