@@ -1,4 +1,7 @@
 import { useWorkspaceStore } from "../store/workspaceStore";
+import { generationBasis } from "../store/overallResult";
+import { GenerationInputs } from "./GenerationInputs";
+import { ProviderSelector } from "./ProviderSelector";
 
 const features = [
   "Multiplayer Mode",
@@ -31,11 +34,13 @@ interface Props {
 
 export function ControlPanel({ onArchitecture, onDiagram, onMCQ, onAddNote }: Props) {
   const project = useWorkspaceStore((state) => state.project);
+  const notes = useWorkspaceStore((state) => state.notes);
   const updateProject = useWorkspaceStore((state) => state.updateProject);
   const toggleFeature = useWorkspaceStore((state) => state.toggleFeature);
 
   return (
     <aside className="controls-section">
+      <ProviderSelector />
       <section className="control-group">
         <h2>◈ Application Details</h2>
         <label htmlFor="appType">Application Type</label>
@@ -99,6 +104,7 @@ export function ControlPanel({ onArchitecture, onDiagram, onMCQ, onAddNote }: Pr
       </section>
 
       <div className="primary-actions">
+        <GenerationInputs basis={generationBasis({ project, notes })} label="Generation inputs" />
         <button onClick={onArchitecture}>Generate Architecture</button>
         <button onClick={onDiagram}>Generate Diagram</button>
         <button className="secondary-button" onClick={onAddNote}>＋ Add Sticky Note</button>

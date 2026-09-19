@@ -31,6 +31,8 @@ export interface Note {
   createdAt: string;
   diagramId?: string;
   mcq?: MCQData;
+  minimized?: boolean;
+  decisionStatus?: "draft" | "confirmed";
 }
 
 export interface Diagram {
@@ -69,4 +71,32 @@ export interface Workspace {
   diagrams: Diagram[];
   favorites: Favorite[];
   trash: TrashItem[];
+  overall: OverallResult | null;
+  resultHistory: OverallResult[];
+  legacyArchive: LegacyResult[];
+}
+
+export interface LegacyResult {
+  id: string;
+  title: string;
+  targetId: string;
+  result: OverallResult;
+  // Retain original layout, content, and state even after leaving the whiteboard.
+  note?: Note;
+}
+
+export interface GenerationBasis {
+  project: Omit<ProjectInput, "category">;
+  decisions: { id: string; title: string; content: string }[];
+}
+
+export interface OverallResult {
+  id: string;
+  version: number;
+  createdAt: string;
+  architecture: string;
+  diagram: string;
+  // Null for imported legacy results: their actual generation inputs are unknown.
+  basis: GenerationBasis | null;
+  source: "generated" | "edited" | "legacy" | "restored";
 }

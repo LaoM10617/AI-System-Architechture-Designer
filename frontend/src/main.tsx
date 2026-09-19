@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { ToastProvider } from "./ui/Toast";
+import { DatabaseGate } from "./components/DatabaseGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +18,7 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <App />
+          <DatabaseGate><App /></DatabaseGate>
         </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>

@@ -58,6 +58,29 @@ class OpenAIProvider:
         return schema.model_validate_json(text)
 
 
+class GroqProvider(OpenAIProvider):
+    def __init__(self, settings: Settings):
+        if not settings.api_key:
+            raise AIProviderError("Groq API key is not configured")
+        super().__init__(settings)
+        self.client = self.client.with_options(max_retries=0)
+
+    async def complete_structured(self, system: str, prompt: str, schema: type[T], *, temperature: float = 0.2) -> T:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_completion_tokens=4096,
+            response_format={"type": "json_schema", "json_schema": {
+                "name": schema.__name__, "strict": True, "schema": schema.model_json_schema(),
+            }},
+        )
+        content = response.choices[0].message.content
+        if not content:
+            raise AIProviderError("Groq returned an empty response")
+        return schema.model_validate_json(content)
+
+
 class GeminiProvider:
     def __init__(self, settings: Settings):
         if not settings.api_key:
@@ -142,4 +165,6 @@ def build_provider(settings: Settings) -> AIProvider:
         return FakeProvider()
     if settings.provider == "gemini":
         return GeminiProvider(settings)
+    if settings.provider == "groq":
+        return GroqProvider(settings)
     return OpenAIProvider(settings)

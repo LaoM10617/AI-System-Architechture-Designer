@@ -4,7 +4,12 @@ import type { HealthResponse } from "./api/client";
 import { ControlPanel } from "./components/ControlPanel";
 import { GlobalLoading } from "./components/GlobalLoading";
 import { Whiteboard } from "./components/Whiteboard";
+import { OverallPreview } from "./components/OverallPreview";
+import { WorkspaceLayout } from "./components/WorkspaceLayout";
+import { useLayoutStore } from "./store/layoutStore";
+import { generationBasis, isResultStale } from "./store/overallResult";
 import { useRequestStore } from "./store/requestStore";
+import { useProviderStore } from "./store/providerStore";
 import { useWorkspaceStore } from "./store/workspaceStore";
 import type { MCQData, Note } from "./types/domain";
 import { useToast } from "./ui/Toast";
@@ -22,12 +27,12 @@ export default function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthFailed, setHealthFailed] = useState(false);
   const [canRetry, setCanRetry] = useState(false);
+  const [streaming, setStreaming] = useState<string | null>(null);
   const retryRef = useRef<(() => void) | null>(null);
   const project = useWorkspaceStore((state) => state.project);
   const notes = useWorkspaceStore((state) => state.notes);
   const addNote = useWorkspaceStore((state) => state.addNote);
   const updateNote = useWorkspaceStore((state) => state.updateNote);
-  const addDiagram = useWorkspaceStore((state) => state.addDiagram);
   const begin = useRequestStore((state) => state.begin);
   const finish = useRequestStore((state) => state.finish);
 
@@ -40,30 +45,47 @@ export default function App() {
   const noteContext = (excludeId?: string) => notes.filter((note) => note.kind === "user" && note.id !== excludeId).map((note) => `${note.title}: ${note.content}`);
 
   const run = async (action: (signal: AbortSignal) => Promise<void>) => {
+    const provider = useProviderStore.getState().selected;
+    useProviderStore.getState().report(provider, "running");
     const signal = begin();
     retryRef.current = () => { void run(action); };
     setCanRetry(false);
     try {
       await action(signal);
+      useProviderStore.getState().report(provider, "success");
       retryRef.current = null;
     } catch (error) {
+      useProviderStore.getState().report(provider, error instanceof DOMException && error.name === "AbortError" ? "cancelled" : "failed");
       if (error instanceof DOMException && error.name === "AbortError") showToast("Request cancelled");
       else { showToast(error instanceof Error ? error.message : "Request failed", "error"); setCanRetry(true); }
     } finally { finish(); }
   };
 
   const generateArchitecture = () => run(async (signal) => {
-    const noteId = addNote({ kind: "architecture", title: "AI Architecture Proposal", content: "" });
+    useLayoutStore.getState().showResult("architecture");
+    const state = useWorkspaceStore.getState();
+    const basis = generationBasis(state);
     let content = "";
-    await api.architectureStream(project, noteContext(), (chunk) => { content += chunk; updateNote(noteId, { content }); }, signal);
+    setStreaming("");
+    try {
+      await api.architectureStream({ ...basis.project, category: state.project.category }, basis.decisions.map((note) => `${note.title}: ${note.content}`), (chunk) => {
+        if (!signal.aborted) { content += chunk; setStreaming(content); }
+      }, signal);
+      signal.throwIfAborted();
+      // A new architecture invalidates the previous diagram, even with identical inputs.
+      state.commitOverall({ architecture: content, diagram: "", basis });
+    } finally { setStreaming(null); }
     showToast("Architecture generated", "success");
   });
 
   const generateDiagram = () => run(async (signal) => {
-    const existingArchitecture = [...notes].reverse().find((note) => note.kind === "architecture" && note.content)?.content;
-    const result = await api.diagram(project, noteContext(), existingArchitecture, signal);
-    const diagramId = addDiagram({ title: "System Diagram", code: result.diagram, architecture: result.architecture });
-    addNote({ kind: "diagram", title: "Mermaid Diagram", content: result.diagram, diagramId });
+    useLayoutStore.getState().showResult("diagram");
+    const state = useWorkspaceStore.getState();
+    const basis = generationBasis(state);
+    const existingArchitecture = !isResultStale(state.overall, basis) ? state.overall?.architecture : undefined;
+    const result = await api.diagram({ ...basis.project, category: state.project.category }, basis.decisions.map((note) => `${note.title}: ${note.content}`), existingArchitecture, signal);
+    signal.throwIfAborted();
+    state.commitOverall({ architecture: result.architecture, diagram: result.diagram, basis });
     showToast(existingArchitecture ? "Diagram generated from the existing architecture" : "Architecture and diagram generated in one request", "success");
   });
 
@@ -87,12 +109,13 @@ export default function App() {
       </header>
       {healthFailed ? <div className="status-banner status-error">Backend is unavailable. Start it with <code>python run.py</code>.</div> : null}
       {health && !health.configured ? <div className="status-banner status-warning">AI provider is not configured. Add the provider API key to <code>api.env</code>.</div> : null}
-      {health?.configured ? <div className="status-banner status-ok">Connected to {health.provider} · {health.model}</div> : null}
+      {health ? <div className="status-banner status-ok">Backend connected · Default provider: {health.provider}</div> : null}
       {canRetry ? <div className="retry-banner">The last AI request failed. Your inputs are unchanged.<button onClick={() => retryRef.current?.()}>Retry</button></div> : null}
-      <main className="main-content">
-        <ControlPanel onArchitecture={generateArchitecture} onDiagram={generateDiagram} onMCQ={generateMCQ} onAddNote={() => addNote()} />
+      <WorkspaceLayout
+        controls={<ControlPanel onArchitecture={generateArchitecture} onDiagram={generateDiagram} onMCQ={generateMCQ} onAddNote={() => addNote()} />}
+        preview={<OverallPreview streaming={streaming} />}>
         <Whiteboard onSuggest={suggestNote} />
-      </main>
+      </WorkspaceLayout>
       <GlobalLoading />
     </div>
   );

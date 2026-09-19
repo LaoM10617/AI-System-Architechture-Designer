@@ -1,21 +1,18 @@
 import { useState } from "react";
 import { useWorkspaceStore } from "../store/workspaceStore";
+import { useLayoutStore } from "../store/layoutStore";
 
 export function WorkspaceBins() {
   const [open, setOpen] = useState<"favorites" | "trash" | null>(null);
   const favorites = useWorkspaceStore((state) => state.favorites);
+  const notes = useWorkspaceStore((state) => state.notes);
+  const archive = useWorkspaceStore((state) => state.legacyArchive);
+  const restoreResult = useWorkspaceStore((state) => state.restoreResult);
+  const toggleFavorite = useWorkspaceStore((state) => state.toggleFavorite);
   const trash = useWorkspaceStore((state) => state.trash);
   const restore = useWorkspaceStore((state) => state.restoreFromTrash);
   const deleteForever = useWorkspaceStore((state) => state.deleteForever);
   const clearTrash = useWorkspaceStore((state) => state.clearTrash);
-
-  const focusFavorite = (targetId: string) => {
-    const element = document.querySelector<HTMLElement>(`[data-target-id="${targetId}"]`);
-    element?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    element?.classList.add("note-highlight");
-    window.setTimeout(() => element?.classList.remove("note-highlight"), 1200);
-    setOpen(null);
-  };
 
   return (
     <div className="workspace-bins" aria-label="Workspace collections">
@@ -28,9 +25,21 @@ export function WorkspaceBins() {
             <button onClick={() => setOpen(null)}>×</button>
           </header>
           {open === "favorites" ? (
-            favorites.length ? favorites.map((item) => (
-              <button className="bin-row" key={item.id} onClick={() => focusFavorite(item.targetId)}>{item.title}</button>
-            )) : <p>Nothing saved yet.</p>
+            favorites.length ? favorites.map((item) => {
+              const archived = archive.find((entry) => entry.targetId === item.targetId || entry.note?.id === item.targetId);
+              const note = notes.find((note) => (note.diagramId ?? note.id) === item.targetId);
+              return (
+              <div className="bin-row trash-row" key={item.id}>
+                <span>{notes.find((note) => (note.diagramId ?? note.id) === item.targetId)?.title ?? item.title}</span>
+                <button disabled={!note && !archived} onClick={() => {
+                  if (archived) {
+                    restoreResult(archived.id);
+                    useLayoutStore.getState().showResult(archived.result.diagram ? "diagram" : "architecture");
+                    setOpen(null);
+                  } else if (note) toggleFavorite(note.id);
+                }}>{archived ? "Open result" : note ? "Restore" : "Source unavailable"}</button>
+              </div>
+            ); }) : <p>Nothing saved yet.</p>
           ) : (
             <>
               {trash.length ? trash.map((item) => (

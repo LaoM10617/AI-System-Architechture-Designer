@@ -13,6 +13,15 @@ interface NoteProps {
 function NoteCard({ note, onSuggest }: NoteProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const updateNote = useWorkspaceStore((state) => state.updateNote);
+  const setDecisionStatus = useWorkspaceStore((state) => state.setDecisionStatus);
+  const confirmed = note.decisionStatus === "confirmed";
+  const stamp = (compact = false) => <button
+    className={`decision-stamp${confirmed ? " confirmed" : ""}${compact ? " compact" : ""}`}
+    aria-label={confirmed ? "Revoke confirmed decision" : "Confirm decision"}
+    aria-pressed={confirmed}
+    title={confirmed ? "Included in overall generation. Click to return to draft." : "Draft: excluded from overall generation. Click to confirm."}
+    onClick={() => setDecisionStatus(note.id, confirmed ? "draft" : "confirmed")}
+  >{compact ? (confirmed ? "✓" : "○") : (confirmed ? "✓ Confirmed decision" : "○ Draft · Confirm decision")}</button>;
   const moveToTrash = useWorkspaceStore((state) => state.moveToTrash);
   const toggleFavorite = useWorkspaceStore((state) => state.toggleFavorite);
   const updateDiagram = useWorkspaceStore((state) => state.updateDiagram);
@@ -62,28 +71,31 @@ function NoteCard({ note, onSuggest }: NoteProps) {
 
   return (
     <article
-      className={`note note-${note.kind}`}
+      className={`note note-${note.kind}${note.minimized ? " note-minimized" : ""}`}
       data-target-id={favoriteTarget}
-      style={{ left: note.position.x, top: note.position.y, width: note.size.width, height: note.size.height }}
+      style={{ left: note.position.x, top: note.position.y, width: note.size.width, height: note.minimized ? 46 : note.size.height }}
     >
       <header className="note-header" onPointerDown={startDrag}>
         {editingTitle ? (
           <input
             autoFocus
+            aria-label="Note title"
             value={note.title}
             onChange={(event) => updateNote(note.id, { title: event.target.value })}
             onBlur={() => setEditingTitle(false)}
             onKeyDown={(event) => { if (event.key === "Enter") setEditingTitle(false); }}
           />
-        ) : <strong onDoubleClick={() => setEditingTitle(true)}>{note.title}</strong>}
+        ) : <button className="note-title" title="Edit title" onClick={() => setEditingTitle(true)}>{note.title || "Untitled note"}</button>}
         <div className="note-actions">
+          {note.minimized && stamp(true)}
           {note.kind === "user" ? <button title="AI suggestion" onClick={() => onSuggest(note)}>✦</button> : null}
-          {note.kind !== "user" ? <button title="Favorite" className={isFavorite ? "active" : ""} onClick={() => toggleFavorite(note.id)}>★</button> : null}
+          <button title={note.minimized ? "Expand note" : "Minimize note"} onClick={() => updateNote(note.id, { minimized: !note.minimized })}>{note.minimized ? "□" : "−"}</button>
+          <button title="Favorite" className={isFavorite ? "active" : ""} onClick={() => toggleFavorite(note.id)}>★</button>
           <button title="Move to trash" onClick={() => moveToTrash(note.id)}>×</button>
         </div>
       </header>
 
-      {note.kind === "diagram" && diagram ? <MermaidViewer code={diagram.code} onChange={(code) => updateDiagram(diagram.id, code)} /> : note.kind === "mcq" && note.mcq ? (
+      {!note.minimized && (note.kind === "diagram" && diagram ? <MermaidViewer code={diagram.code} onChange={(code) => updateDiagram(diagram.id, code)} /> : note.kind === "mcq" && note.mcq ? (
         <div className="note-content mcq-content">
           <strong>{note.mcq.question}</strong>
           {note.mcq.options.map((option) => (
@@ -104,19 +116,21 @@ function NoteCard({ note, onSuggest }: NoteProps) {
           value={note.content}
           onChange={(event) => updateNote(note.id, { content: event.target.value })}
         />
-      )}
-      <button className="resize-handle" aria-label={`Resize ${note.title}`} onPointerDown={startResize} />
+      ))}
+      {!note.minimized && <footer className="note-decision">{stamp()}</footer>}
+      {!note.minimized && <button className="resize-handle" aria-label={`Resize ${note.title}`} onPointerDown={startResize} />}
     </article>
   );
 }
 
 export function Whiteboard({ onSuggest }: { onSuggest: (note: Note) => void }) {
   const notes = useWorkspaceStore((state) => state.notes);
+  const favorites = useWorkspaceStore((state) => state.favorites);
   return (
     <section className="workspace-shell">
       <div className="whiteboard" aria-label="Architecture whiteboard">
         <div className="grid-lines" />
-        {notes.map((note) => <NoteCard note={note} onSuggest={onSuggest} key={note.id} />)}
+        {notes.filter((note) => !favorites.some((item) => item.targetId === (note.diagramId ?? note.id))).map((note) => <NoteCard note={note} onSuggest={onSuggest} key={note.id} />)}
       </div>
       <WorkspaceBins />
     </section>

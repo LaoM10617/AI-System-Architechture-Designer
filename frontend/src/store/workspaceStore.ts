@@ -1,8 +1,16 @@
 import { create } from "zustand";
-import type { Diagram, MCQData, Note, ProjectInput, Workspace } from "../types/domain";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { Diagram, GenerationBasis, MCQData, Note, OverallResult, ProjectInput, Workspace } from "../types/domain";
+import { HISTORY_LIMIT, migrateWorkspace } from "./overallResult";
 
 const now = () => new Date().toISOString();
 const makeId = () => crypto.randomUUID();
+
+// Preserve the original serialized data before Zustand applies any migration.
+const originalLocalWorkspace = localStorage.getItem("ai-architecture-designer-workspace");
+if (originalLocalWorkspace && !localStorage.getItem("ai-architecture-designer-pre-database-backup")) {
+  localStorage.setItem("ai-architecture-designer-pre-database-backup", originalLocalWorkspace);
+}
 
 type NewNoteInput = Partial<Pick<Note, "kind" | "title" | "content" | "diagramId">> & {
   mcq?: MCQData;
@@ -47,6 +55,9 @@ const initialProject: ProjectInput = {
 };
 
 interface WorkspaceActions {
+  setDecisionStatus: (id: string, status: "draft" | "confirmed") => void;
+  commitOverall: (result: { architecture: string; diagram: string; basis: GenerationBasis | null; source?: OverallResult["source"] }) => void;
+  restoreResult: (id: string) => void;
   updateProject: (patch: Partial<ProjectInput>) => void;
   toggleFeature: (feature: string) => void;
   addNote: (input?: NewNoteInput) => string;
@@ -62,12 +73,32 @@ interface WorkspaceActions {
 
 type WorkspaceStore = Workspace & WorkspaceActions;
 
-export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
+export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => ({
   project: initialProject,
-  notes: initialNotes,
+  notes: initialNotes.map((note) => ({ ...note, decisionStatus: "draft" })),
   diagrams: [],
   favorites: [],
   trash: [],
+  overall: null,
+  resultHistory: [],
+  legacyArchive: [],
+
+  setDecisionStatus: (id, decisionStatus) => set((state) => ({
+    notes: state.notes.map((note) => note.id === id ? { ...note, decisionStatus } : note),
+  })),
+  commitOverall: (result) => set((state) => ({
+    overall: {
+      ...structuredClone(result), source: result.source ?? "generated",
+      id: makeId(), createdAt: now(),
+      version: Math.max(state.overall?.version ?? 0, ...state.resultHistory.map((item) => item.version)) + 1,
+    },
+    resultHistory: state.overall ? [structuredClone(state.overall), ...state.resultHistory].slice(0, HISTORY_LIMIT) : state.resultHistory,
+  })),
+  // Rollback switches results only, never project inputs, notes, or collections.
+  restoreResult: (id) => {
+    const result = get().resultHistory.find((item) => item.id === id) ?? get().legacyArchive.find((item) => item.id === id)?.result;
+    if (result) get().commitOverall(result);
+  },
 
   updateProject: (patch) => set((state) => ({ project: { ...state.project, ...patch } })),
   toggleFeature: (feature) => set((state) => ({
@@ -92,6 +123,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       createdAt: now(),
       diagramId: input.diagramId,
       mcq: input.mcq,
+      decisionStatus: "draft",
     };
     set((state) => ({ notes: [...state.notes, note] }));
     return id;
@@ -150,5 +182,14 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
             createdAt: now(),
           }],
     };
+  }),
+}), {
+  name: "ai-architecture-designer-workspace",
+  version: 3,
+  migrate: migrateWorkspace,
+  storage: createJSONStorage(() => localStorage),
+  // Persist domain data only; request controllers and transient UI stay in memory.
+  partialize: ({ project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive }) => ({
+    project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive,
   }),
 }));

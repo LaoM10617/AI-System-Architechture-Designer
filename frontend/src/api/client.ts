@@ -1,4 +1,5 @@
 import type { ProjectInput } from "../types/domain";
+import { useProviderStore } from "../store/providerStore";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
 const HEALTH_URL = API_BASE_URL.endsWith("/api") ? `${API_BASE_URL.slice(0, -4)}/health` : "/health";
@@ -24,8 +25,12 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(payload.error?.message || `Request failed with status ${response.status}`, response.status, payload.error?.code);
 }
 
-async function request<T>(path: string, options: RequestInit & { signal?: AbortSignal } = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
+export async function request<T>(path: string, options: RequestInit & { signal?: AbortSignal } = {}): Promise<T> {
+  const selected = useProviderStore.getState().selected;
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  if (selected && /^\/(architecture|design|diagram|mcq|notes\/suggestion)(\/|$)/.test(path)) headers.set("X-AI-Provider", selected);
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   if (!response.ok) throw await parseError(response);
   return response.json() as Promise<T>;
 }
@@ -48,7 +53,7 @@ export const api = {
   ) => {
     const response = await fetch(`${API_BASE_URL}/architecture/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(useProviderStore.getState().selected ? { "X-AI-Provider": useProviderStore.getState().selected } : {}) },
       body: JSON.stringify(projectRequest(project, notes)),
       signal,
     });

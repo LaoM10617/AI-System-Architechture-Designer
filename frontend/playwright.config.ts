@@ -1,4 +1,7 @@
 import { defineConfig } from "@playwright/test";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -15,9 +18,9 @@ export default defineConfig({
     {
       command: ".\\.venv\\Scripts\\python.exe -m uvicorn backend:app --host 127.0.0.1 --port 8000",
       cwd: "..",
-      env: { AI_PROVIDER: "fake", PYTHONDONTWRITEBYTECODE: "1" },
+      env: { AI_PROVIDER: "fake", PYTHONDONTWRITEBYTECODE: "1", DATABASE_PATH: join(tmpdir(), `architecture-e2e-${randomUUID()}.sqlite3`) },
       url: "http://127.0.0.1:8000/health",
-      reuseExistingServer: true,
+      reuseExistingServer: false,
       timeout: 30_000,
     },
     {

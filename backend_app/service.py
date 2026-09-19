@@ -78,6 +78,10 @@ class AIService:
                     yield chunk
         except TimeoutError as exc:
             raise AIProviderError(f"AI provider timed out after {self.settings.timeout_seconds:g} seconds") from exc
+        except AIProviderError:
+            raise
+        except Exception as exc:
+            raise AIProviderError("AI provider request failed. Retry or select the backup provider.") from exc
         result = "".join(chunks).strip()
         if result:
             self._cache[key] = (time.monotonic() + self.settings.cache_ttl_seconds, result)
