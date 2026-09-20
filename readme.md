@@ -18,36 +18,6 @@ The goal is not simply to generate a picture: it is to help users explore an ide
 - Autosave each project to SQLite, retain failed writes locally, and recover after refresh or service restart.
 - Manually switch between configured Gemini and Groq providers; use a fake provider for repeatable, quota-free demonstrations.
 
-## Technical architecture
-
-### 1. Presentation and project-scoped state
-
-React 19 renders the interface; TypeScript defines the domain contracts. Vite serves the frontend and proxies API requests during local development. Zustand owns workspace state; the DOM is a rendering surface, not a persistence format.
-
-`ProjectShell` manages open projects. Each project receives its own workspace store, request controller, and database synchronization controller through React context. Switching tabs changes the visible workspace rather than overwriting one global store with another project's data. Only the active workspace renders its UI; inactive project controllers remain available for in-flight work.
-
-The domain includes project inputs, notes, decisions, diagrams, favorites, trash, overall results, and version history. Overall results are separate from notes. Layout preferences and the default provider selection are application-level preferences; project content, save revisions, and request ownership are project-scoped.
-
-### 2. API and AI orchestration
-
-FastAPI exposes typed endpoints for generation and persistence. Pydantic validates request/response contracts, while error responses use a consistent `error.code` / `error.message` shape.
-
-`AIService` owns prompt construction, bounded note context, timeouts, result reuse, and an in-memory request cache. Provider adapters implement completion, streaming, and structured generation using the Google Gen AI SDK or the OpenAI-compatible client. Gemini and Groq have separate service/cache instances; `X-AI-Provider` selects the provider for an AI request. Keys stay on the backend.
-
-Architecture text is streamed through fetch with a text response, not SSE. A diagram request either converts a reusable architecture or obtains architecture plus Mermaid source in one structured model call. Generated Mermaid is rendered in the browser with strict security mode; invalid source exposes an editing path rather than crashing the workspace.
-
-### 3. Persistence and recovery
-
-Python's SQLite driver provides local storage, with short-lived connections, foreign keys, WAL mode, and transactional writes. Storage endpoints execute in FastAPI's thread pool rather than blocking the asynchronous AI path.
-
-The data model is intentionally small:
-
-- `projects`: stable identity, display name, creation/update timestamps.
-- `workspaces`: one structured snapshot and revision per project, plus its current result pointer.
-- `solution_versions`: immutable saved architecture/diagram results, their generation basis, and version metadata.
-- `write_requests`: project-scoped idempotency receipts for safe retries.
-
-SQLite is the durable source of saved project data. Browser storage supplements it with project-scoped caches, unfinished writes, and uncommitted result-editor drafts. The application does not depend on a last-second network save when the browser closes.
 
 ## Repository guide
 
