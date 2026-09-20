@@ -178,17 +178,6 @@ Open [the workspace](http://127.0.0.1:5173). [API documentation](http://127.0.0.
 
 Private environment files, key files, SQLite data, and local milestone logs are excluded from Git. Cloning the repository does not copy your keys or saved projects. Back up SQLite separately using a consistent SQLite backup, or stop the application before copying its database files. Uncommitted editor drafts remain browser-local until explicitly saved as a result version.
 
-## Interview demo: a short narrative
-
-1. **Establish the scope:** open or create a project and enter a concise product description; select relevant application/scale settings. Leave unrelated fixed feature options unchecked.
-2. **Explore before committing:** add a note about one design question and request an AI suggestion. Explain the distinction between a draft and a confirmed decision.
-3. **Generate and inspect:** confirm a relevant decision, stream an architecture, then generate its diagram in the right preview. Show source editing and SVG export.
-4. **Demonstrate traceability:** modify a confirmed decision, show the outdated-result warning, regenerate, and restore an earlier result without reverting the notes.
-5. **Demonstrate isolation:** create a second project, switch tabs, and show independent input and output. Double-click its tab to rename it.
-6. **Demonstrate durability:** wait for “Saved to SQLite,” close a project tab, and reopen it from the project list. Explain retry/revision handling if asked.
-
-For predictable interview timing, use the fake provider for the main workflow and optionally show a real-provider note suggestion separately. Fake responses demonstrate behavior, not real model quality or latency.
-
 ## API and validation entry points
 
 AI routes include `/api/architecture`, `/api/architecture/stream`, `/api/design`, `/api/diagram`, `/api/mcq`, and `/api/notes/suggestion`. `/api/providers` returns safe provider metadata. Project list/create/import live under `/api/projects`; rename, workspace synchronization, and version operations use explicit project IDs. Swagger documents the exact schemas.
