@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api/client";
+import { prepareDiagram } from "./api/mermaid";
 import type { HealthResponse } from "./api/client";
 import { ControlPanel } from "./components/ControlPanel";
 import { GlobalLoading } from "./components/GlobalLoading";
@@ -90,8 +91,15 @@ export default function App({ active = true }: { active?: boolean }) {
     const basis = generationBasis(state);
     const existingArchitecture = !isResultStale(state.overall, basis) ? state.overall?.architecture : undefined;
     const result = await api.diagram({ ...basis.project, category: state.project.category }, basis.decisions.map((note) => `${note.title}: ${note.content}`), existingArchitecture, signal);
+    const checked = await prepareDiagram(result.diagram);
     signal.throwIfAborted();
-    state.commitOverall({ architecture: result.architecture, diagram: result.diagram, basis });
+    if (checked.error) {
+      state.setDiagramIssue({ ...result, basis, error: checked.error });
+      throw new Error("Generated Mermaid is invalid. Previous results are unchanged; edit the rejected source in the preview or retry.");
+    }
+    state.setDiagramIssue(null);
+    state.commitOverall({ architecture: result.architecture, diagram: checked.code, basis });
+    if (checked.repaired) showToast("Repaired duplicate label quotes / code fencing and validated Mermaid syntax", "info");
     showToast(existingArchitecture ? "Diagram generated from the existing architecture" : "Architecture and diagram generated in one request", "success");
   });
 

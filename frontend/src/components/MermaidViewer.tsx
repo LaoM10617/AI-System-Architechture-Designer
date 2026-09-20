@@ -1,9 +1,5 @@
 import { useEffect, useId, useState } from "react";
-
-const mermaidPromise = import("mermaid").then(({ default: mermaid }) => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "default" });
-  return mermaid;
-});
+import { mermaidReady, prepareDiagram } from "../api/mermaid";
 
 interface Props {
   code: string;
@@ -17,16 +13,24 @@ export function MermaidViewer({ code, onChange }: Props) {
   const [showCode, setShowCode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [repair, setRepair] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    mermaidPromise
-      .then((mermaid) => mermaid.render(`diagram-${reactId}-${Date.now()}`, code))
-      .then(({ svg: rendered }) => {
-        if (active) { setSvg(rendered); setError(""); }
+    setSvg(""); setError(""); setRepair(null);
+    prepareDiagram(code)
+      .then(async (result) => {
+        if (!active) return null;
+        if (result.error) throw new Error(result.error);
+        setRepair(result.repaired ? result.code : null);
+        const mermaid = await mermaidReady;
+        return mermaid.render(`diagram-${reactId}-${Date.now()}`, result.code);
+      })
+      .then((result) => {
+        if (active && result) { setSvg(result.svg); setError(""); }
       })
       .catch((reason: unknown) => {
-        if (active) { setError(reason instanceof Error ? reason.message : "Invalid Mermaid diagram"); setShowCode(true); }
+        if (active) { setSvg(""); setError(reason instanceof Error ? reason.message : "Invalid Mermaid diagram"); setShowCode(true); }
       });
     return () => { active = false; };
   }, [code, reactId]);
@@ -43,7 +47,10 @@ export function MermaidViewer({ code, onChange }: Props) {
 
   const renderCanvas = () => (
     <div className="diagram-body">
-      {error ? <div className="diagram-error">Mermaid could not render this code. Edit the source below to repair it.</div> : null}
+      {error ? <div className="diagram-error">Mermaid could not render this code. Edit the source below to repair it.<pre>{error}</pre></div> : null}
+      {repair && !error && <div role="status">Preview uses a validated syntax repair. Saved source is unchanged.
+        <button onClick={() => onChange(repair)}>Use repaired source</button>
+      </div>}
       {showCode ? (
         <textarea className="diagram-code diagram-editor" value={code} onChange={(event) => onChange(event.target.value)} spellCheck={false} />
       ) : (

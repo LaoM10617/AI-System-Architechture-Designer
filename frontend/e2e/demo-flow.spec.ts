@@ -33,7 +33,7 @@ test("demo path reaches architecture and diagram results", async ({ page }) => {
   await page.locator('article[data-target-id="target-audience"]').getByTitle("Favorite", { exact: true }).click();
   await page.locator('article[data-target-id="technical-requirements"]').getByTitle("Move to trash").click();
   const saved = await page.evaluate(() => {
-    const { previewEditing: _diagramDraft, architectureEdit: _architectureDraft, ...domain } = JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state;
+    const { previewEditing: _diagramDraft, architectureEdit: _architectureDraft, diagramIssue: _rejected, ...domain } = JSON.parse(localStorage.getItem(`ai-architecture-designer-workspace-${localStorage.getItem("ai-architecture-designer-project")}`)!).state;
     return domain;
   });
   expect(saved.diagrams).toHaveLength(0);

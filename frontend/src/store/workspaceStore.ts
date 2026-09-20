@@ -56,6 +56,8 @@ const initialProject: ProjectInput = {
 };
 
 interface WorkspaceActions {
+  diagramIssue: { diagram: string; architecture: string; basis: GenerationBasis; error: string } | null;
+  setDiagramIssue: (value: WorkspaceActions["diagramIssue"]) => void;
   previewEditing: { id: string; code: string } | null;
   architectureEdit: { id: string; text: string } | null;
   setPreviewEditing: (value: { id: string; code: string } | null) => void;
@@ -87,6 +89,8 @@ export const createWorkspaceStore = (storageKey: string, empty = false) => creat
   overall: null,
   resultHistory: [],
   legacyArchive: [],
+  diagramIssue: null,
+  setDiagramIssue: (diagramIssue) => set({ diagramIssue }),
   previewEditing: null,
   architectureEdit: null,
   setPreviewEditing: (previewEditing) => set({ previewEditing }),
@@ -198,10 +202,10 @@ export const createWorkspaceStore = (storageKey: string, empty = false) => creat
   migrate: migrateWorkspace,
   storage: createJSONStorage(() => localStorage),
   // Persist domain data only; request controllers and transient UI stay in memory.
-  partialize: ({ project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive, previewEditing, architectureEdit }) => ({
+  partialize: ({ project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive, previewEditing, architectureEdit, diagramIssue }) => ({
     project, notes, diagrams, favorites, trash, overall, resultHistory, legacyArchive,
     // Local editor recovery only: not part of SQLite snapshots or saved versions.
-    previewEditing, architectureEdit,
+    previewEditing, architectureEdit, diagramIssue,
   }),
 }));
 

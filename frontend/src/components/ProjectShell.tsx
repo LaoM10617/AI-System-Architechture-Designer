@@ -129,7 +129,8 @@ export function ProjectShell() {
   };
   const close = async (value: Session) => {
     if (useSessions.getState().closing.includes(value.key)) return;
-    const { overall, previewEditing, architectureEdit } = value.workspace.getState();
+    const { overall, previewEditing, architectureEdit, diagramIssue } = value.workspace.getState();
+    if (diagramIssue) { activate(value); setError("Save or discard the rejected diagram draft before closing this project."); return; }
     if (overall && ((previewEditing?.id === overall.id && previewEditing.code !== overall.diagram)
       || (architectureEdit?.id === overall.id && architectureEdit.text !== overall.architecture))) {
       activate(value); setError("Save or discard the result edits before closing this project."); return;

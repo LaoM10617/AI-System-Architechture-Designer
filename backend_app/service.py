@@ -10,6 +10,7 @@ from .providers import AIProvider, AIProviderError
 from .schemas import DesignResponse, DiagramRequest, MCQRequest, NoteSuggestionRequest, ProjectRequest
 
 ARCHITECT_SYSTEM = "You are an expert software architect. Answer in English."
+MERMAID_LABELS = 'Use exactly one pair of double quotes around node labels, e.g. A["API (HTTP)"]; never A[""API (HTTP)""].'
 T = TypeVar("T")
 
 
@@ -92,7 +93,7 @@ class AIService:
                 return await asyncio.wait_for(
                     self.provider.complete_structured(
                         "You are an expert software architect and Mermaid diagram author. Answer in English.",
-                        "Create a concise architecture proposal and a valid Mermaid graph TD diagram for:\n\n" + self.project_context(req),
+                        "Create a concise architecture proposal and a valid Mermaid graph TD diagram. " + MERMAID_LABELS + "\n\n" + self.project_context(req),
                         DesignResponse,
                         temperature=0.1,
                     ),
@@ -115,7 +116,7 @@ class AIService:
         async def generate() -> str:
             return await self._complete(
                 "You convert architecture descriptions into valid Mermaid diagrams.",
-                "Return only Mermaid graph TD code without Markdown fences. Quote every node label.\n\nArchitecture:\n" + req.architecture,
+                "Return only Mermaid graph TD code without Markdown fences. " + MERMAID_LABELS + "\n\nArchitecture:\n" + req.architecture,
                 temperature=0.1,
             )
         diagram = await self._cached("diagram", req.model_dump(), generate)

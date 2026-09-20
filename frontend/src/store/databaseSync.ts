@@ -235,8 +235,8 @@ const unsubscribe = useWorkspaceStore.subscribe((state, previous) => {
   timer = setTimeout(() => { void flush(); }, newVersion ? 0 : 1000);
 });
 const beforeUnload = (event: BeforeUnloadEvent) => {
-  const { overall, architectureEdit, previewEditing } = useWorkspaceStore.getState();
-  if (pending || (overall && ((architectureEdit?.id === overall.id && architectureEdit.text !== overall.architecture)
+  const { overall, architectureEdit, previewEditing, diagramIssue } = useWorkspaceStore.getState();
+  if (pending || diagramIssue || (overall && ((architectureEdit?.id === overall.id && architectureEdit.text !== overall.architecture)
     || (previewEditing?.id === overall.id && previewEditing.code !== overall.diagram)))) { event.preventDefault(); event.returnValue = ""; }
 };
 const pageHide = () => { if (pending) persistPending(); };

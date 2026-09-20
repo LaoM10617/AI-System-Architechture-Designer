@@ -1,11 +1,16 @@
-import { useWorkspaceStore } from "../store/workspaceStore";
+import { useWorkspaceStore, useWorkspaceInstance } from "../store/workspaceStore";
 import { generationBasis, isResultStale } from "../store/overallResult";
 import { MermaidViewer } from "./MermaidViewer";
 import { useLayoutStore } from "../store/layoutStore";
 import { GenerationInputs } from "./GenerationInputs";
+import { prepareDiagram } from "../api/mermaid";
+import { useState } from "react";
 
 export function OverallPreview({ streaming }: { streaming: string | null }) {
   const state = useWorkspaceStore();
+  const workspace = useWorkspaceInstance();
+  const [validating, setValidating] = useState(false);
+  const [editError, setEditError] = useState("");
   const result = state.overall;
   const basis = generationBasis(state);
   const stale = isResultStale(result, basis);
@@ -16,6 +21,23 @@ export function OverallPreview({ streaming }: { streaming: string | null }) {
   return (
     <section className="overall-preview" aria-label="Overall solution">
       <h2>Overall solution {result ? `· v${result.version}` : ""}</h2>
+      {state.diagramIssue && <section className="diagram-error" aria-label="Rejected diagram">
+        <p>Generated diagram failed validation. Previous results remain saved.</p>
+        <pre>{state.diagramIssue.error}</pre>
+        <textarea aria-label="Rejected Mermaid source" value={state.diagramIssue.diagram}
+          onChange={(event) => state.setDiagramIssue({ ...state.diagramIssue!, diagram: event.target.value })} />
+        <button disabled={validating} onClick={async () => {
+          const issue = state.diagramIssue!;
+          setValidating(true);
+          try {
+            const checked = await prepareDiagram(issue.diagram);
+            if (workspace.getState().diagramIssue !== issue) return;
+            if (checked.error) state.setDiagramIssue({ ...issue, error: checked.error });
+            else { state.commitOverall({ architecture: issue.architecture, diagram: checked.code, basis: issue.basis, source: "edited" }); state.setDiagramIssue(null); }
+          } catch (error) { setEditError(String(error)); } finally { setValidating(false); }
+        }}>Validate and save diagram</button>
+        <button disabled={validating} onClick={() => state.setDiagramIssue(null)}>Discard rejected diagram</button>
+      </section>}
       <div className="preview-tabs" role="tablist" aria-label="Solution preview">
         <button role="tab" id="architecture-tab" aria-controls="architecture-panel" aria-selected={tab === "architecture"} onClick={() => setTab("architecture")}>Architecture</button>
         <button role="tab" id="diagram-tab" aria-controls="diagram-panel" aria-selected={tab === "diagram"} onClick={() => setTab("diagram")}>Diagram</button>
@@ -45,9 +67,16 @@ export function OverallPreview({ streaming }: { streaming: string | null }) {
       {!result?.diagram && <p>Generate a diagram to preview it here.</p>}
       {result?.diagram && <>
         <MermaidViewer key={result.id} code={editedCode ?? result.diagram} onChange={(code) => setEditing({ id: result.id, code })} />
-        {editedCode !== undefined && editedCode !== result.diagram && <button onClick={() => {
-          state.commitOverall({ ...result, diagram: editedCode, source: "edited" });
-          setEditing(null);
+        {editError && <pre className="diagram-error">{editError}</pre>}
+        {editedCode !== undefined && editedCode !== result.diagram && <button disabled={validating} onClick={async () => {
+          setValidating(true); setEditError("");
+          try {
+            const checked = await prepareDiagram(editedCode);
+            if (workspace.getState().overall?.id !== result.id || workspace.getState().previewEditing?.code !== editedCode) return;
+            if (checked.error) { setEditError(checked.error); return; }
+            state.commitOverall({ ...result, diagram: checked.code, source: "edited" });
+            setEditing(null);
+          } catch (error) { setEditError(String(error)); } finally { setValidating(false); }
         }}>Save diagram changes</button>}
         {editedCode !== undefined && editedCode !== result.diagram && <button onClick={() => setEditing(null)}>Discard diagram edits</button>}
       </>}
