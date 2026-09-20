@@ -49,45 +49,6 @@ The data model is intentionally small:
 
 SQLite is the durable source of saved project data. Browser storage supplements it with project-scoped caches, unfinished writes, and uncommitted result-editor drafts. The application does not depend on a last-second network save when the browser closes.
 
-## Deliberate design choices
-
-### Separate exploration from accepted decisions
-
-Draft notes do not affect the overall diagram. Confirmed notes do, including confirmed notes stored in Favorites; trashed notes do not. Each generated result stores a snapshot of its generation basis. Changes to relevant inputs trigger an out-of-date indication, and outdated architecture is not silently reused for diagram generation.
-
-This makes the AI input boundary visible and gives the user control over when an exploratory idea becomes a design constraint. Note suggestions and MCQ generation have their own context paths; the confirmed-only rule applies to overall architecture/diagram generation.
-
-### Keep asynchronous work attached to its project
-
-An AI request captures the originating project's store and input basis. Switching to project B does not redirect a response started in A. Cancellation is checked before applying results; completion of an older cancelled request cannot clear a newer request's controller.
-
-Closing a project cancels its AI request and waits for pending saves. Failed saves keep the tab open. A closed project is not a deleted project: it remains available in SQLite and the project list.
-
-### Make retries safe, not just convenient
-
-Writes include an expected revision and a request ID. The backend rejects stale revisions and scopes duplicate-request protection to the project. If a write succeeds but its response is lost, retrying the original request returns its receipt instead of creating another version.
-
-Rename uses the same save queue and revision sequence as content changes: pending writes finish first, the name is committed, and subsequent autosaves use the new revision. A result restore creates a new current version; it does not overwrite historical results or roll back notes.
-
-Workspace snapshots keep the local persistence implementation compact. This is not event sourcing or a per-keystroke history system; the explicitly versioned artifacts are the overall design results.
-
-### Reduce unnecessary model work
-
-- Reuse current architecture when its generation basis still matches.
-- Generate architecture and diagram together when no reusable architecture exists.
-- Stream text to reduce perceived waiting, without claiming streaming reduces total inference time.
-- Limit note context and cache identical serialized request inputs for a configurable TTL.
-- Use asynchronous provider calls and bounded timeouts.
-- Offer manual provider switching and a fake provider rather than silently making another external request.
-
-Provider status reports configuration and request outcomes, not remaining quota. Timing headers aid request diagnostics; they are not an end-to-end streaming benchmark.
-
-### Test the failure boundaries that matter for a demo
-
-Playwright exercises project switching during AI generation, save failures, cancellation, rename conflicts, legacy import, and reopening projects. A separate restart scenario stops its own frontend/backend processes, restarts them against the same temporary SQLite file, and restores two projects in a fresh browser context. Backend tests cover transaction rollback, revisions, idempotency, and project isolation.
-
-These checks target data loss and cross-project contamination rather than relying only on a successful generation screenshot.
-
 ## Repository guide
 
 ```text
