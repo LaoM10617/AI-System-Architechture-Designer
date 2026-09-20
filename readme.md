@@ -1,183 +1,247 @@
 # AI System Architecture Designer
 
-AI System Architecture Designer is an AI-assisted workspace for product ideation and system design demonstrations. It allows users to organize requirements on a visual whiteboard, generate system architecture proposals, create Mermaid diagrams, clarify requirements with multiple-choice questions, and request AI-powered note suggestions. Generated results can be edited, favorited, restored, or exported as part of the design workflow.
+An AI-assisted workspace for turning requirements into explicit decisions, architecture proposals, and editable system diagrams. Built for local, single-user exploration and live demonstrations, it combines a brainstorming whiteboard with project-isolated persistence and a reviewable AI generation workflow.
 
-The frontend is built with React and TypeScript, while FastAPI provides a unified backend API. Gemini is the default AI provider. The project also supports OpenAI-compatible endpoints and a local fake provider that does not require an API key.
+**React + TypeScript + Zustand · FastAPI + Pydantic · SQLite · Gemini / Groq · Mermaid · Playwright**
 
-## Core Features
+The goal is not simply to generate a picture: it is to help users explore an idea, decide which inputs should influence the design, inspect the result, and continue without losing their work.
 
-- Generate system architecture proposals from the application type, expected scale, core features, and project description
-- Add, edit, move, and resize notes on a visual whiteboard
-- Generate additional requirement notes and AI-powered note suggestions
-- Generate Mermaid architecture diagrams from the current architecture proposal
-- View, edit, and render Mermaid source code
-- Zoom diagrams, open them in fullscreen, and download them as SVG files
-- Generate multiple-choice questions to clarify project requirements
-- Save architecture and diagram results as favorites
-- Delete, restore, or permanently remove notes
-- Stream architecture responses and cancel or retry AI requests
+## What the demo can do today
 
-## Technology Stack
+- Create independent projects, switch between tabs, reopen saved projects, and double-click a tab to rename it.
+- Use a three-column workspace: project controls, a note whiteboard, and an overall architecture/diagram preview. Side panels collapse and resize.
+- Edit, move, resize, minimize, favorite, trash, and restore notes. Favoriting removes a note from the visible whiteboard without discarding it.
+- Explore a note with AI suggestions, or generate multiple-choice clarification questions.
+- Mark notes as draft or confirmed decisions. Only confirmed notes join the project settings as inputs to overall generation.
+- Stream architecture text; generate, edit, zoom, fullscreen, and export Mermaid diagrams as SVG.
+- Track generation inputs, detect outdated results, save result versions, and restore earlier results without reverting requirements.
+- Autosave each project to SQLite, retain failed writes locally, and recover after refresh or service restart.
+- Manually switch between configured Gemini and Groq providers; use a fake provider for repeatable, quota-free demonstrations.
 
-### Frontend
+## Technical architecture
 
-- React 19
-- TypeScript
-- Vite
-- Zustand
-- Mermaid
-- Playwright
+### 1. Presentation and project-scoped state
 
-### Backend
+React 19 renders the interface; TypeScript defines the domain contracts. Vite serves the frontend and proxies API requests during local development. Zustand owns workspace state; the DOM is a rendering surface, not a persistence format.
 
-- Python 3.12+
-- FastAPI
-- Pydantic
-- Google Gen AI SDK
-- OpenAI Python SDK
+`ProjectShell` manages open projects. Each project receives its own workspace store, request controller, and database synchronization controller through React context. Switching tabs changes the visible workspace rather than overwriting one global store with another project's data. Only the active workspace renders its UI; inactive project controllers remain available for in-flight work.
 
-## Project Structure
+The domain includes project inputs, notes, decisions, diagrams, favorites, trash, overall results, and version history. Overall results are separate from notes. Layout preferences and the default provider selection are application-level preferences; project content, save revisions, and request ownership are project-scoped.
+
+### 2. API and AI orchestration
+
+FastAPI exposes typed endpoints for generation and persistence. Pydantic validates request/response contracts, while error responses use a consistent `error.code` / `error.message` shape.
+
+`AIService` owns prompt construction, bounded note context, timeouts, result reuse, and an in-memory request cache. Provider adapters implement completion, streaming, and structured generation using the Google Gen AI SDK or the OpenAI-compatible client. Gemini and Groq have separate service/cache instances; `X-AI-Provider` selects the provider for an AI request. Keys stay on the backend.
+
+Architecture text is streamed through fetch with a text response, not SSE. A diagram request either converts a reusable architecture or obtains architecture plus Mermaid source in one structured model call. Generated Mermaid is rendered in the browser with strict security mode; invalid source exposes an editing path rather than crashing the workspace.
+
+### 3. Persistence and recovery
+
+Python's SQLite driver provides local storage, with short-lived connections, foreign keys, WAL mode, and transactional writes. Storage endpoints execute in FastAPI's thread pool rather than blocking the asynchronous AI path.
+
+The data model is intentionally small:
+
+- `projects`: stable identity, display name, creation/update timestamps.
+- `workspaces`: one structured snapshot and revision per project, plus its current result pointer.
+- `solution_versions`: immutable saved architecture/diagram results, their generation basis, and version metadata.
+- `write_requests`: project-scoped idempotency receipts for safe retries.
+
+SQLite is the durable source of saved project data. Browser storage supplements it with project-scoped caches, unfinished writes, and uncommitted result-editor drafts. The application does not depend on a last-second network save when the browser closes.
+
+## Deliberate design choices
+
+### Separate exploration from accepted decisions
+
+Draft notes do not affect the overall diagram. Confirmed notes do, including confirmed notes stored in Favorites; trashed notes do not. Each generated result stores a snapshot of its generation basis. Changes to relevant inputs trigger an out-of-date indication, and outdated architecture is not silently reused for diagram generation.
+
+This makes the AI input boundary visible and gives the user control over when an exploratory idea becomes a design constraint. Note suggestions and MCQ generation have their own context paths; the confirmed-only rule applies to overall architecture/diagram generation.
+
+### Keep asynchronous work attached to its project
+
+An AI request captures the originating project's store and input basis. Switching to project B does not redirect a response started in A. Cancellation is checked before applying results; completion of an older cancelled request cannot clear a newer request's controller.
+
+Closing a project cancels its AI request and waits for pending saves. Failed saves keep the tab open. A closed project is not a deleted project: it remains available in SQLite and the project list.
+
+### Make retries safe, not just convenient
+
+Writes include an expected revision and a request ID. The backend rejects stale revisions and scopes duplicate-request protection to the project. If a write succeeds but its response is lost, retrying the original request returns its receipt instead of creating another version.
+
+Rename uses the same save queue and revision sequence as content changes: pending writes finish first, the name is committed, and subsequent autosaves use the new revision. A result restore creates a new current version; it does not overwrite historical results or roll back notes.
+
+Workspace snapshots keep the local persistence implementation compact. This is not event sourcing or a per-keystroke history system; the explicitly versioned artifacts are the overall design results.
+
+### Reduce unnecessary model work
+
+- Reuse current architecture when its generation basis still matches.
+- Generate architecture and diagram together when no reusable architecture exists.
+- Stream text to reduce perceived waiting, without claiming streaming reduces total inference time.
+- Limit note context and cache identical serialized request inputs for a configurable TTL.
+- Use asynchronous provider calls and bounded timeouts.
+- Offer manual provider switching and a fake provider rather than silently making another external request.
+
+Provider status reports configuration and request outcomes, not remaining quota. Timing headers aid request diagnostics; they are not an end-to-end streaming benchmark.
+
+### Test the failure boundaries that matter for a demo
+
+Playwright exercises project switching during AI generation, save failures, cancellation, rename conflicts, legacy import, and reopening projects. A separate restart scenario stops its own frontend/backend processes, restarts them against the same temporary SQLite file, and restores two projects in a fresh browser context. Backend tests cover transaction rollback, revisions, idempotency, and project isolation.
+
+These checks target data loss and cross-project contamination rather than relying only on a successful generation screenshot.
+
+## Repository guide
 
 ```text
 .
-├── backend_app/          # FastAPI routes, schemas, AI providers, and services
-├── frontend/             # React and TypeScript frontend
-│   ├── src/              # Pages, components, state management, and API client
-│   └── e2e/              # Playwright demo-flow test
-├── backend.py            # FastAPI application entry point
-├── run.py                # Unified frontend and backend launcher
-├── requirements.txt      # Python dependencies
-└── api.env.example       # Environment configuration example
+├── backend.py                       # Current FastAPI entry point
+├── run.py                           # Start frontend and backend together
+├── backend_app/
+│   ├── app.py                       # Routes, provider selection, errors, timing
+│   ├── config.py                    # Environment and provider configuration
+│   ├── schemas.py                   # AI request/response contracts
+│   ├── providers.py                 # Gemini, Groq, compatible and fake adapters
+│   ├── service.py                   # Prompts, streaming, reuse, cache, timeouts
+│   ├── storage.py                   # SQLite transactions and version operations
+│   ├── storage_models.py            # Persistence contracts
+│   └── storage_routes.py            # Project-scoped persistence API
+├── frontend/
+│   ├── src/
+│   │   ├── main.tsx                 # Application bootstrap and providers
+│   │   ├── App.tsx                  # Project AI workflows
+│   │   ├── api/client.ts            # Shared API client and streaming fetch
+│   │   ├── components/
+│   │   │   ├── ProjectShell.tsx     # Tabs, creation, opening, closing, rename
+│   │   │   ├── DatabaseGate.tsx     # Loading, recovery and conflict boundaries
+│   │   │   ├── WorkspaceLayout.tsx  # Resizable three-column layout
+│   │   │   ├── Whiteboard.tsx       # Notes and decision stamps
+│   │   │   ├── OverallPreview.tsx   # Overall result, editing and versions
+│   │   │   └── MermaidViewer.tsx    # Rendering, source editing and SVG export
+│   │   ├── store/
+│   │   │   ├── workspaceStore.ts    # Project store factory and domain actions
+│   │   │   ├── databaseSync.ts      # Save queue, revisions, retry and recovery
+│   │   │   ├── requestStore.ts      # Per-project request ownership/cancellation
+│   │   │   └── overallResult.ts     # Generation basis, freshness and migration
+│   │   ├── types/domain.ts          # Workspace domain types
+│   │   └── ui/                     # Error boundary and toast feedback
+│   ├── e2e/                        # Browser workflow and failure-path tests
+│   ├── restart-tests/              # Real frontend/backend restart acceptance
+│   └── playwright*.config.ts       # Isolated browser test configurations
+├── tests/                          # Backend persistence and provider tests
+├── data/                           # Local SQLite and backups; Git-ignored
+├── api.env.example                 # Safe configuration template
+├── requirements.txt                # Python dependencies
+├── docs/                           # Existing demo assets
+├── index.html, script.js, style.css # Historical vanilla frontend
+├── js/, old versions/              # Historical implementations
+└── backend_Gemini.py                # Historical backend implementation
 ```
 
-## Requirements
+The active application is `frontend/` + `backend_app/`, launched through `backend.py` / `run.py`. Historical files are retained for reference; they are not the current startup path. Collaboration rooms and multi-user synchronization are outside the active workflow.
 
-- Python 3.12 or later
-- Node.js 20 or later
-- pnpm
-- A Gemini API key when using the real Gemini service
+## Local setup
 
-Install pnpm if it is not already available:
-
-```powershell
-npm install -g pnpm
-```
-
-## Installation and Startup
-
-Run the following commands from the project root directory.
-
-### 1. Create a Python virtual environment
+Use Python 3.12+, Node.js 22.12+, and pnpm. Run commands from the repository root. On Windows, invoking the virtual environment's Python directly avoids needing to activate it.
 
 ```powershell
 python -m venv .venv
-```
-
-### 2. Install the backend dependencies
-
-```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-### 3. Install the frontend dependencies
-
-```powershell
 pnpm --dir frontend install
 ```
 
-### 4. Configure the AI service
+If pnpm is missing, install it with `npm install -g pnpm` and reopen the terminal if necessary. Python virtual-environment activation does not install or expose Node.js/pnpm.
 
-Copy the environment configuration example:
+Copy the configuration template **only on first setup**; do not overwrite an existing private configuration:
 
 ```powershell
 Copy-Item api.env.example api.env
 ```
 
-Open `api.env` and add your Gemini API key:
+For a reliable offline demo, set `AI_PROVIDER=fake` in `api.env`. The fake provider returns demonstration data without consuming API quota.
 
-```dotenv
-AI_PROVIDER=gemini
-AI_MODEL=gemini-3.5-flash-lite
-GEMINI_API_KEY=your_gemini_api_key
-```
+For real AI, set `AI_PROVIDER=gemini` and replace `GEMINI_API_KEY` with your key. The template supplies the project's configured model; model selection can be overridden for your account. Optionally configure `GROQ_API_KEY` and `GROQ_MODEL` for manual backup-provider selection in the left panel. Alternatively, `GROQ_API_KEY_FILE` can point to a private local text file.
 
-The `api.env` file is excluded from Git and should never be committed with a real API key.
-
-### 5. Start the application
+Start both services:
 
 ```powershell
 .\.venv\Scripts\python.exe run.py
 ```
 
-This command starts both the React development server and the FastAPI backend:
+Open [the workspace](http://127.0.0.1:5173). [API documentation](http://127.0.0.1:8000/docs) and [health status](http://127.0.0.1:8000/health) are served by FastAPI. Stop the launcher with `Ctrl+C`. The launcher starts local development servers, not a production deployment.
 
-- Frontend: http://127.0.0.1:5173
-- Backend: http://127.0.0.1:8000
-- API documentation: http://127.0.0.1:8000/docs
-- Health check: http://127.0.0.1:8000/health
+### Configuration and data
 
-Press `Ctrl+C` in the terminal to stop both services.
+- `DATABASE_PATH` selects the SQLite file; the template uses `data/workspace.sqlite3`. Tables are initialized at backend startup.
+- `AI_PROVIDER` selects `gemini`, `groq`, `openai` (compatible endpoint), or `fake`. Follow the template for the intended Gemini default.
+- Provider-specific model variables such as `GROQ_MODEL` take precedence; `AI_MODEL` applies to the configured default provider.
+- For an OpenAI-compatible service, explicitly configure `OPENAI_API_KEY`, `AI_MODEL`, and `AI_BASE_URL` for the intended endpoint.
+- `AI_TIMEOUT_SECONDS`, `AI_CACHE_TTL_SECONDS`, `AI_MAX_NOTES`, and `AI_MAX_CONTEXT_CHARS` tune generation behavior.
+- `CORS_ORIGINS` controls allowed origins. The normal frontend path uses Vite's `/api` proxy; see `frontend/vite.config.ts` and `frontend/.env.example` for frontend overrides.
 
-## Running Without an API Key
+Private environment files, key files, SQLite data, and local milestone logs are excluded from Git. Cloning the repository does not copy your keys or saved projects. Back up SQLite separately using a consistent SQLite backup, or stop the application before copying its database files. Uncommitted editor drafts remain browser-local until explicitly saved as a result version.
 
-To explore the interface and demo workflow without calling an external AI service, configure the fake provider in `api.env`:
+## Interview demo: a short narrative
 
-```dotenv
-AI_PROVIDER=fake
-AI_MODEL=fake-model
-```
+1. **Establish the scope:** open or create a project and enter a concise product description; select relevant application/scale settings. Leave unrelated fixed feature options unchecked.
+2. **Explore before committing:** add a note about one design question and request an AI suggestion. Explain the distinction between a draft and a confirmed decision.
+3. **Generate and inspect:** confirm a relevant decision, stream an architecture, then generate its diagram in the right preview. Show source editing and SVG export.
+4. **Demonstrate traceability:** modify a confirmed decision, show the outdated-result warning, regenerate, and restore an earlier result without reverting the notes.
+5. **Demonstrate isolation:** create a second project, switch tabs, and show independent input and output. Double-click its tab to rename it.
+6. **Demonstrate durability:** wait for “Saved to SQLite,” close a project tab, and reopen it from the project list. Explain retry/revision handling if asked.
 
-The fake provider returns predefined demonstration data and does not consume external API quota.
+For predictable interview timing, use the fake provider for the main workflow and optionally show a real-provider note suggestion separately. Fake responses demonstrate behavior, not real model quality or latency.
 
-## Recommended Demo Flow
+## API and validation entry points
 
-1. Select the application type, expected user scale, and core features in the control panel.
-2. Edit the project description and add or update requirement notes on the whiteboard.
-3. Generate an architecture proposal and watch the result stream into a new note.
-4. Generate a Mermaid diagram from the architecture proposal.
-5. Switch between rendered and source modes to edit, zoom, view, or download the diagram.
-6. Generate a multiple-choice question to clarify an unresolved requirement.
-7. Favorite useful results or use the trash to delete and restore notes.
-
-## Configuration
-
-Runtime configuration is loaded from the `api.env` file in the project root.
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `AI_PROVIDER` | AI provider: `gemini`, `openai`, or `fake` | `gemini` |
-| `AI_MODEL` | Model name used by the selected provider | `gemini-3.5-flash-lite` |
-| `GEMINI_API_KEY` | Gemini API key | Empty |
-| `OPENAI_API_KEY` | API key for OpenAI or an OpenAI-compatible service | Empty |
-| `AI_BASE_URL` | Base URL for an OpenAI-compatible service | Empty |
-| `AI_TIMEOUT_SECONDS` | Timeout for upstream AI requests | `45` |
-| `AI_CACHE_TTL_SECONDS` | In-memory cache duration for identical requests | `300` |
-| `AI_MAX_NOTES` | Maximum number of notes sent in one AI request | `30` |
-| `AI_MAX_CONTEXT_CHARS` | Maximum context length sent in one AI request | `24000` |
-| `CORS_ORIGINS` | Comma-separated frontend origins allowed to access the API | `http://127.0.0.1:5173` |
-
-## API Overview
-
-- `GET /health` — Check the service, provider, and model configuration
-- `POST /api/architecture` — Generate a complete architecture proposal
-- `POST /api/architecture/stream` — Stream an architecture proposal
-- `POST /api/design` — Generate an architecture proposal and Mermaid diagram in one request
-- `POST /api/diagram` — Generate a Mermaid diagram from an existing architecture or project requirements
-- `POST /api/mcq` — Generate a requirement-clarification question
-- `POST /api/notes/suggestion` — Generate a note suggestion
-
-After starting the application, visit http://127.0.0.1:8000/docs for the complete Swagger API documentation and request schemas.
-
-## Build and Test
-
-Create a production frontend build:
+AI routes include `/api/architecture`, `/api/architecture/stream`, `/api/design`, `/api/diagram`, `/api/mcq`, and `/api/notes/suggestion`. `/api/providers` returns safe provider metadata. Project list/create/import live under `/api/projects`; rename, workspace synchronization, and version operations use explicit project IDs. Swagger documents the exact schemas.
 
 ```powershell
+# Production frontend compilation
 pnpm --dir frontend build
+
+# Backend tests: temporary databases and fake providers
+.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+
+# First-time browser installation
+pnpm --dir frontend exec playwright install chromium
+
+# Focused multi-project acceptance
+pnpm --dir frontend exec playwright test e2e/projects.spec.ts e2e/project-lifecycle.spec.ts e2e/rename.spec.ts
+
+# Actual service stop/restart with a temporary database
+pnpm --dir frontend exec playwright test --config playwright.restart.config.ts
 ```
 
-Run the Playwright demo-flow test:
+Stop ordinary development servers before the default browser suite: it reserves ports 8000/5173 and refuses an existing backend. The restart suite uses test-owned processes and temporary ports. The Windows restart harness expects `.venv/Scripts/python.exe`.
 
-```powershell
-pnpm --dir frontend test:e2e
-```
+## Next steps: from one overall diagram to connected architectural views
+
+**Proposed direction, not implemented functionality.** Early hands-on use has made note-level AI exploration especially useful. It has also exposed a modeling issue: business structure, implementation details, and failure scenarios should not all compete for space in the same overall diagram. Adding more prompt text does not resolve that mismatch.
+
+A better direction is **multiple scoped views over related decisions**, not one increasingly large diagram. Hierarchy is useful but insufficient: C4 distinguishes structural abstraction levels and supporting dynamic/deployment views, while arc42 separately treats structure, runtime behavior, deployment, decisions, and crosscutting concepts. These are reference points for the roadmap, not frameworks the current implementation claims to implement. [C4 diagrams](https://c4model.com/diagrams), [arc42 overview](https://arc42.org/overview/).
+
+### 1. Smallest useful increment: a diagram for one note
+
+Keep the existing **AI suggestion** action unchanged. Add a separate **Generate local diagram** action that uses the note's current text, an explicit diagram purpose, and only selected supporting context. Return an editable Mermaid diagram card linked to the source note; do not replace the note or overwrite the overall result.
+
+For example, a note about payment retries could produce a sequence or state diagram, while the overall view continues to show the main business systems. Store the source note ID and input snapshot so edits can mark the local result stale. Reuse existing Mermaid rendering/export and project persistence; no full drawing editor is required for this increment.
+
+Acceptance: creating or regenerating a local diagram changes neither the overall result nor its generation basis.
+
+### 2. Separate approval from scope
+
+Today, “confirmed” means inclusion in overall generation. Extend that into two independent concepts: **decision status** and **where the decision applies**. A confirmed retry policy may belong to a payment scenario, not the business overview.
+
+Give each view an explicit purpose, scope, and selected input set. Start with a few useful view types rather than a rigid universal hierarchy: overview, component structure, interaction/failure scenario, deployment, and data/state view. Existing confirmed decisions should retain their current overall scope during migration.
+
+Promotion to the overview should be explicit: a user approves a concise summary of a local decision, rather than automatically injecting the entire discussion or diagram into the global prompt.
+
+### 3. Link and expand before merging
+
+Initially connect artifacts with explicit references such as “explains,” “refines,” or “depends on.” Opening a linked detail view provides useful drill-down without changing either diagram. Record relationships using stable artifact IDs, not positions on the whiteboard or labels embedded in SVG.
+
+Only later introduce reviewed merge proposals: show what would change, allow acceptance/rejection, and create a new version. Do not concatenate Mermaid sources or merge SVG graphics as if they were a shared semantic model. If cross-view editing becomes central, introduce stable architecture-entity IDs and relationships before attempting automatic synchronization.
+
+### 4. Add evidence and evaluation as the workflow grows
+
+Record lightweight decision rationale, alternatives, source references, and affected views. Invalidate only views whose inputs changed. Add a small evaluation set spanning overview diagrams, failure scenarios, and deployment views, then measure output validity, relevance, latency, and token usage per task.
+
+The intended evolution is incremental: **note exploration → scoped local diagram → linked views → reviewed changes across views**. This preserves the fast brainstorming loop while making architectural depth navigable instead of forcing it into one picture.

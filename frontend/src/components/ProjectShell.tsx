@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { create } from "zustand";
 import App from "../App";
 import { request } from "../api/client";
@@ -58,22 +58,50 @@ function open(id: string) {
   activate(value);
 }
 
-function ProjectTab({ value, active, closing, onClose }: { value: Session; active: boolean; closing: boolean; onClose: () => void }) {
-  const { activeProject, phase } = value.database.store();
+function ProjectTab({ value, active, closing, onClose, onRenamed }: { value: Session; active: boolean; closing: boolean; onClose: () => void; onRenamed: (identity: ProjectIdentity) => void }) {
+  const { activeProject, phase, loaded } = value.database.store();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [error, setError] = useState("");
+  const startRename = () => {
+    if (closing || !loaded || !["ready", "dirty", "saving"].includes(phase)) return;
+    setName(activeProject?.name ?? ""); setError(""); setEditing(true);
+  };
+  const submit = async () => {
+    if (renaming) return;
+    setRenaming(true); setError("");
+    try { await value.database.renameProject(name); setEditing(false); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : "Rename failed. Please retry."); }
+    finally { setRenaming(false); }
+  };
   const pending = value.requests((state) => state.pending);
+  // Also synchronize list names after recovery/retry outside the rename form.
+  useEffect(() => { if (activeProject) onRenamed(activeProject); }, [activeProject, onRenamed]);
   // Background saves must never change which project opens on the next visit.
   useEffect(() => { if (active && activeProject) localStorage.setItem(BINDING, activeProject.id); if (activeProject) rememberOpen(); }, [active, activeProject]);
   return <div className="project-tab">
-    <button role="tab" aria-selected={active} onClick={() => activate(value)}>
+    <button role="tab" aria-selected={active} title="Double-click to rename (or press F2)" onDoubleClick={startRename}
+      onKeyDown={(event) => { if (event.key === "F2") { event.preventDefault(); startRename(); } }} onClick={() => activate(value)}>
       {activeProject?.name ?? "Workspace"} <small>{closing ? "Closing…" : pending ? "AI running" : phase}</small>
     </button>
-    <button disabled={closing} aria-label={`Close ${activeProject?.name ?? "workspace"}`} onClick={onClose}>×</button>
+    {editing && <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+      <input autoFocus aria-label="Rename project" maxLength={200} value={name} disabled={renaming}
+        onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape" && !renaming) setEditing(false); }} />
+      <button type="submit" disabled={renaming || !name.trim()}>Save name</button>
+      <button type="button" disabled={renaming} onClick={() => setEditing(false)}>Cancel rename</button>
+      {error && <span role="alert">{error}</span>}
+    </form>}
+    <button disabled={closing || renaming} aria-label={`Close ${activeProject?.name ?? "workspace"}`} onClick={onClose}>×</button>
   </div>;
 }
 
 export function ProjectShell() {
   const { sessions, active, closing } = useSessions();
   const [projects, setProjects] = useState<ProjectIdentity[]>([]);
+  const syncName = useCallback((identity: ProjectIdentity) => {
+    setProjects((items) => items.map((item) => item.id === identity.id ? identity : item));
+  }, []);
   const [listOpen, setListOpen] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -124,7 +152,8 @@ export function ProjectShell() {
   return <>
     <nav className="project-bar" aria-label="Projects">
       <div role="tablist" aria-label="Open projects" className="project-tabs">
-        {sessions.map((value) => <ProjectTab key={value.key} value={value} active={value.key === active} closing={closing.includes(value.key)} onClose={() => void close(value)} />)}
+        {sessions.map((value) => <ProjectTab key={value.key} value={value} active={value.key === active} closing={closing.includes(value.key)} onClose={() => void close(value)}
+          onRenamed={syncName} />)}
       </div>
       <form onSubmit={(event) => { event.preventDefault(); void add(); }}>
         <input aria-label="New project name" maxLength={200} value={name} onChange={(event) => setName(event.target.value)} placeholder="Project name" />

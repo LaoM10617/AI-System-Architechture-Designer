@@ -85,7 +85,8 @@ async function loadProject(id: string) {
       if (draft) { localStorage.setItem(`ai-architecture-designer-backup-${crypto.randomUUID()}`, draft); localStorage.removeItem(key); }
     }
     // Recovery data is deliberately retained as a backup when choosing database data.
-    set({ phase: "ready", loaded: true, activeProject: loaded.project_record, message: "Saved to SQLite" });
+    set((state) => ({ phase: "ready", loaded: true, activeProject: loaded.project_record,
+      projects: state.projects.map((item) => item.id === id ? loaded.project_record : item), message: "Saved to SQLite" }));
   } catch (error) { applying = false; failed(error); }
   finally { busy = false; }
 }
@@ -121,6 +122,22 @@ function flush(): Promise<void> {
   return saving;
 }
 
+async function renameProject(input: string) {
+  const name = input.trim();
+  if (!name || name.length > 200) throw new Error("Project name must contain 1–200 characters.");
+  if (!useDatabaseSync.getState().loaded || disposed) throw new Error("Load the project before renaming it.");
+  // Resolve any uncertain previous write with its original idempotency key first.
+  await flush();
+  if (busy || pending || useDatabaseSync.getState().phase !== "ready") throw new Error("Resolve the project's save or conflict before renaming.");
+  if (useDatabaseSync.getState().activeProject?.name === name) return;
+  const value = data();
+  pending = { projectId, data: value, revision, flight: { path: `/projects/${projectId}`, method: "PATCH",
+    body: { request_id: crypto.randomUUID(), expected_revision: revision, name }, data: value } };
+  // The normal save loop persists/retries the rename and advances the same revision.
+  await flush();
+  if (useDatabaseSync.getState().phase !== "ready") throw new Error(useDatabaseSync.getState().message);
+}
+
 async function savePending() {
   busy = true;
   set({ phase: "saving", message: "Saving to SQLite…" });
@@ -135,9 +152,10 @@ async function savePending() {
       revision = receipt.revision;
       set((state) => {
         const creation = flight.body as { name?: string };
-        const identity = state.projects.find((item) => item.id === projectId)
-          ?? { id: projectId, name: creation.name ?? "Existing project" };
-        return { activeProject: identity, projects: state.projects.some((item) => item.id === projectId) ? state.projects : [identity, ...state.projects] };
+        const identity = creation.name ? { id: projectId, name: creation.name }
+          : state.activeProject ?? state.projects.find((item) => item.id === projectId) ?? { id: projectId, name: "Existing project" };
+        return { activeProject: identity, projects: state.projects.some((item) => item.id === projectId)
+          ? state.projects.map((item) => item.id === projectId ? identity : item) : [identity, ...state.projects] };
       });
       saved = JSON.stringify(sent);
       pending.flight = undefined; pending.revision = revision;
@@ -183,6 +201,7 @@ async function startDatabase() {
       if (!candidate || (projectId && candidate.projectId !== projectId) || !candidate.data || !Number.isInteger(candidate.revision)) throw new Error("Invalid project recovery record; original data retained.");
       const flight = candidate.flight;
       if (flight && !((flight.path === `/projects/${candidate.projectId}/sync` && flight.method === "PUT")
+        || (flight.path === `/projects/${candidate.projectId}` && flight.method === "PATCH")
         || (flight.path === "/projects/import" && flight.method === "POST" && (flight.body as { project_id?: string }).project_id === candidate.projectId))) throw new Error("Recovery request does not belong to this project; original data retained.");
       pending = candidate; recoveredKey = key; projectId = candidate.projectId;
       const name = (flight?.body as { name?: string } | undefined)?.name ?? "Recovered project";
@@ -224,7 +243,7 @@ const pageHide = () => { if (pending) persistPending(); };
 window.addEventListener("beforeunload", beforeUnload);
 window.addEventListener("pagehide", pageHide);
 
-return { store: useDatabaseSync, loadProject, importLocal, flush, recoverLocal, retryDatabase, startDatabase,
+return { store: useDatabaseSync, loadProject, importLocal, renameProject, flush, recoverLocal, retryDatabase, startDatabase,
   currentProjectId: () => projectId, data: () => pending?.data ?? data(),
   canClose: () => !busy && !pending && useDatabaseSync.getState().phase !== "recovery",
   dispose: () => { disposed = true; clearTimeout(timer); unsubscribe(); window.removeEventListener("beforeunload", beforeUnload); window.removeEventListener("pagehide", pageHide); },
